@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}Relatório Financeiro{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'finance:dashboard' %}" class="text-gray-600 hover:text-gray-900">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                    </a>
+                    <h1 class="text-xl font-semibold text-gray-900">Relatório Financeiro</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button onclick="window.print()" class="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors">
+                        🖨️ Imprimir
+                    </button>
+                    <a href="{% url 'core:logout' %}" class="text-sm text-gray-600 hover:text-gray-900">
+                        Sair
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Resumo Rápido -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Entradas</p>
+                    <p class="text-2xl font-bold text-green-600 mt-1">
+                        R$ {{ summary.total_income|floatformat:2 }}
+                    </p>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Gastos</p>
+                    <p class="text-2xl font-bold text-red-600 mt-1">
+                        R$ {{ summary.total_expenses|floatformat:2 }}
+                    </p>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Saldo</p>
+                    <p class="text-2xl font-bold {% if summary.balance >= 0 %}text-green-600{% else %}text-red-600{% endif %} mt-1">
+                        R$ {{ summary.balance|floatformat:2 }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Relatório Textual -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 print:p-8">
+            <div class="prose max-w-none">
+                <pre class="whitespace-pre-wrap font-mono text-sm text-gray-900">{{ report_text }}</pre>
+            </div>
+        </div>
+
+        <!-- Metadados -->
+        <div class="mt-6 text-center text-sm text-gray-500">
+            <p>Período: {{ metadata.period|title }}</p>
+            <p>Gerado em: {{ metadata.generated_at|date:"d/m/Y H:i:s" }}</p>
+        </div>
+    </main>
+</div>
+
+<style>
+@media print {
+    header {
+        display: none;
+    }
+    .bg-gray-50 {
+        background: white;
+    }
+    .rounded-lg, .shadow-sm, .border {
+        border: none;
+        box-shadow: none;
+    }
+}
+</style>
+{% endblock %}
+

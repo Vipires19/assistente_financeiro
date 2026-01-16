@@ -1,0 +1,1038 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Financeiro{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-semibold text-gray-900">Dashboard Financeiro</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-gray-600 hidden sm:inline">{{ user.email }}</span>
+                    <a href="{% url 'core:logout' %}" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+                        Sair
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <!-- Filtro de Período -->
+        <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="flex items-center space-x-2">
+                <label class="text-sm font-medium text-gray-700">Período:</label>
+                <select id="periodFilter" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                    <option value="diário">Diário</option>
+                    <option value="semanal">Semanal</option>
+                    <option value="mensal" selected>Mensal</option>
+                </select>
+            </div>
+            <div class="flex items-center space-x-2">
+                <a href="{% url 'finance:criar-transacao' %}" class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
+                    ➕ Novo Lançamento
+                </a>
+                <a href="{% url 'finance:agenda' %}" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                    📅 Agenda
+                </a>
+                <button id="manageCategoriesBtn" class="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors">
+                    🏷️ Gerenciar Categorias
+                </button>
+                <button id="generateReportBtn" class="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                    📊 Gerar Relatório
+                </button>
+            </div>
+        </div>
+
+        <!-- Cards de Métricas -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            <!-- Card: Gastos -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Gastos</p>
+                        <p class="text-2xl font-bold text-red-600 mt-1" id="totalExpenses">
+                            R$ 0,00
+                        </p>
+                    </div>
+                    <div class="bg-red-100 rounded-full p-3">
+                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Entradas -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Entradas</p>
+                        <p class="text-2xl font-bold text-green-600 mt-1" id="totalIncome">
+                            R$ 0,00
+                        </p>
+                    </div>
+                    <div class="bg-green-100 rounded-full p-3">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Saldo -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Saldo</p>
+                        <p class="text-2xl font-bold mt-1" id="balance">
+                            R$ 0,00
+                        </p>
+                    </div>
+                    <div class="bg-primary-100 rounded-full p-3">
+                        <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Dia com Maior Gasto -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Dia com Maior Gasto</p>
+                        <p class="text-lg font-semibold text-gray-900 mt-1" id="dayHighestExpense">
+                            -
+                        </p>
+                    </div>
+                    <div class="bg-blue-100 rounded-full p-3">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Categoria com Maior Gasto -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Categoria com Maior Gasto</p>
+                        <p class="text-lg font-semibold text-gray-900 mt-1" id="categoryHighestExpense">
+                            -
+                        </p>
+                    </div>
+                    <div class="bg-purple-100 rounded-full p-3">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Horário com Maior Gasto -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Horário com Maior Gasto</p>
+                        <p class="text-lg font-semibold text-gray-900 mt-1" id="hourHighestExpense">
+                            -
+                        </p>
+                    </div>
+                    <div class="bg-yellow-100 rounded-full p-3">
+                        <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Seção de Gráficos -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- Gráfico: Despesas e Entradas por Categoria -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Despesas e Entradas por Categoria</h3>
+                <div class="h-64">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Gráfico: Gastos por Dia da Semana -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Gastos por Dia da Semana</h3>
+                <div class="h-64">
+                    <canvas id="weekdayChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Gráfico: Gastos por Horário -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 lg:col-span-2">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Gastos por Horário do Dia</h3>
+                <div class="h-64">
+                    <canvas id="hourChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabela de Transações -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-4 sm:px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <h3 class="text-lg font-semibold text-gray-900 mb-2 sm:mb-0">Transações</h3>
+                <div id="transactionsPaginationInfo" class="text-sm text-gray-600"></div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                            <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                            <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hora</th>
+                            <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoria</th>
+                            <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                            <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descrição</th>
+                            <th class="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionsTableBody" class="bg-white divide-y divide-gray-200">
+                        <tr>
+                            <td colspan="7" class="px-6 py-4 text-center text-gray-500">
+                                Carregando...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <!-- Paginação -->
+            <div class="px-4 sm:px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div class="flex items-center space-x-2">
+                    <span class="text-sm text-gray-700">Itens por página:</span>
+                    <select id="transactionsLimit" class="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button id="prevPageBtn" class="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        Anterior
+                    </button>
+                    <span id="currentPageInfo" class="text-sm text-gray-700">Página 1</span>
+                    <button id="nextPageBtn" class="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        Próxima
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Modal de Gerenciamento de Categorias -->
+<div id="categoriesModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50 overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+            <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+        </div>
+        
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+            <!-- Header do Modal -->
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-900">Gerenciar Categorias Personalizadas</h3>
+                    <button id="closeCategoriesModal" class="text-gray-400 hover:text-gray-500">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Conteúdo do Modal -->
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 max-h-[70vh] overflow-y-auto">
+                <!-- Formulário para Adicionar Categoria -->
+                <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <h4 class="text-md font-medium text-gray-900 mb-3">Adicionar Nova Categoria</h4>
+                    <form id="addCategoryForm" class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                        {% csrf_token %}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+                            <input type="text" id="newCategoryName" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+                            <select id="newCategoryType" required
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                <option value="">Selecione...</option>
+                                <option value="receita">Receita</option>
+                                <option value="entrada">Outras Entradas</option>
+                                <option value="investimento">Investimentos</option>
+                                <option value="alimentacao">Alimentação</option>
+                                <option value="transporte">Transporte</option>
+                                <option value="saude">Saúde e Bem Estar</option>
+                                <option value="lazer">Lazer</option>
+                                <option value="educacao">Educação</option>
+                                <option value="habitacao">Habitação</option>
+                                <option value="outros">Demais Despesas</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Descrição (opcional)</label>
+                            <input type="text" id="newCategoryDesc"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                        </div>
+                        <div class="flex items-end">
+                            <button type="submit" class="w-full px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors">
+                                Adicionar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Lista de Categorias por Tipo -->
+                <div id="categoriesList" class="space-y-6">
+                    <!-- Categorias serão carregadas aqui via JavaScript -->
+                    <div class="text-center text-gray-500 py-8">
+                        Carregando categorias...
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Footer do Modal -->
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
+                <button id="closeCategoriesModalBtn" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-gray-600 text-base font-medium text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:ml-3 sm:w-auto sm:text-sm">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Configuração global
+const API_BASE = '/finance/api';
+
+// Função para formatar valores monetários
+function formatCurrency(value) {
+    return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    }).format(value);
+}
+
+// Função para formatar data no formato brasileiro (dd/mm/yyyy)
+function formatDate(dateString) {
+    if (!dateString || dateString === '-') {
+        return '-';
+    }
+    
+    try {
+        // Se já estiver no formato dd/mm/yyyy, retorna como está
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateString)) {
+            return dateString;
+        }
+        
+        // Se estiver no formato YYYY-MM-DD, converte
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+            const [year, month, day] = dateString.split('-');
+            return `${day}/${month}/${year}`;
+        }
+        
+        // Tenta criar um objeto Date e formatar
+        const date = new Date(dateString);
+        
+        // Verifica se a data é válida
+        if (isNaN(date.getTime())) {
+            return dateString; // Retorna original se não conseguir converter
+        }
+        
+        // Formata no padrão brasileiro
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const year = date.getFullYear();
+        
+        return `${day}/${month}/${year}`;
+    } catch (error) {
+        console.warn('Erro ao formatar data:', dateString, error);
+        return dateString; // Retorna original em caso de erro
+    }
+}
+
+// Função para carregar dados do dashboard
+async function loadDashboardData(period = 'mensal') {
+    try {
+        // Carrega dados principais
+        const response = await fetch(`${API_BASE}/dashboard/?period=${period}`);
+        const data = await response.json();
+
+        // Atualiza cards
+        document.getElementById('totalExpenses').textContent = formatCurrency(data.total_expenses || 0);
+        document.getElementById('totalIncome').textContent = formatCurrency(data.total_income || 0);
+        
+        const balance = data.balance || 0;
+        const balanceEl = document.getElementById('balance');
+        balanceEl.textContent = formatCurrency(balance);
+        balanceEl.className = `text-2xl font-bold mt-1 ${balance >= 0 ? 'text-green-600' : 'text-red-600'}`;
+
+        // Dia com maior gasto
+        if (data.day_with_highest_expense) {
+            const day = data.day_with_highest_expense;
+            document.getElementById('dayHighestExpense').textContent = 
+                `${day.formatted_date} - ${formatCurrency(day.total)}`;
+        } else {
+            document.getElementById('dayHighestExpense').textContent = 'N/A';
+        }
+
+        // Categoria com maior gasto
+        if (data.category_with_highest_expense) {
+            const cat = data.category_with_highest_expense;
+            document.getElementById('categoryHighestExpense').textContent = 
+                `${cat.category} - ${formatCurrency(cat.total)}`;
+        } else {
+            document.getElementById('categoryHighestExpense').textContent = 'N/A';
+        }
+
+        // Horário com maior gasto
+        if (data.hour_with_highest_expense) {
+            const hour = data.hour_with_highest_expense;
+            document.getElementById('hourHighestExpense').textContent = 
+                `${hour.formatted_hour} - ${formatCurrency(hour.total)}`;
+        } else {
+            document.getElementById('hourHighestExpense').textContent = 'N/A';
+        }
+
+        // Não atualiza tabela aqui - ela tem sua própria paginação
+        // A tabela será carregada separadamente via loadTransactions()
+
+    } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+    }
+}
+
+// Variáveis globais para os gráficos
+let categoryChart = null;
+let weekdayChart = null;
+let hourChart = null;
+
+// Função auxiliar para destruir gráfico de forma segura
+function destroyChart(chartInstance) {
+    if (chartInstance && typeof chartInstance.destroy === 'function') {
+        try {
+            chartInstance.destroy();
+        } catch (error) {
+            console.warn('Erro ao destruir gráfico:', error);
+        }
+    }
+    return null;
+}
+
+// Função para carregar gráficos
+async function loadCharts(period = 'mensal') {
+    try {
+        console.log('Carregando gráficos para período:', period);
+        
+        // Verifica se Chart.js está disponível
+        if (typeof Chart === 'undefined') {
+            console.error('Chart.js não está carregado! Verifique se o script está incluído.');
+            return;
+        }
+
+        const response = await fetch(`${API_BASE}/charts/?type=all&period=${period}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const chartsData = await response.json();
+        console.log('Dados dos gráficos recebidos:', chartsData);
+
+        // ========== GRÁFICO POR CATEGORIA ==========
+        const categoryCtx = document.getElementById('categoryChart');
+        if (!categoryCtx) {
+            console.error('Elemento categoryChart não encontrado!');
+        } else {
+            // Destrói gráfico anterior de forma segura
+            categoryChart = destroyChart(categoryChart);
+            
+            const categoryChartCtx = categoryCtx.getContext('2d');
+            
+            // Valida dados antes de criar gráfico
+            if (!chartsData.by_category || !chartsData.by_category.labels || chartsData.by_category.labels.length === 0) {
+                console.warn('Nenhuma categoria encontrada para o gráfico');
+                chartsData.by_category = {
+                    labels: ['Nenhum dado'],
+                    datasets: [{
+                        label: 'Despesas por Categoria',
+                        data: [0],
+                        backgroundColor: ['rgba(200, 200, 200, 0.2)'],
+                        borderColor: ['rgba(200, 200, 200, 1)'],
+                        borderWidth: 2
+                    }]
+                };
+            }
+            
+            // Verifica se há múltiplos datasets (entradas e gastos)
+            const hasMultipleDatasets = chartsData.by_category.datasets && chartsData.by_category.datasets.length > 1;
+            
+            categoryChart = new Chart(categoryChartCtx, {
+                type: hasMultipleDatasets ? 'bar' : 'doughnut',
+                data: chartsData.by_category,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 10,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.dataset.label || '';
+                                    const value = formatCurrency(context.parsed.y || context.parsed || 0);
+                                    return `${label}: ${value}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: hasMultipleDatasets ? {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatCurrency(value);
+                                }
+                            }
+                        }
+                    } : undefined
+                }
+            });
+        }
+
+        // ========== GRÁFICO POR DIA DA SEMANA ==========
+        const weekdayCtx = document.getElementById('weekdayChart');
+        if (!weekdayCtx) {
+            console.error('Elemento weekdayChart não encontrado!');
+        } else {
+            // Destrói gráfico anterior de forma segura
+            weekdayChart = destroyChart(weekdayChart);
+            
+            const weekdayChartCtx = weekdayCtx.getContext('2d');
+            
+            // Valida dados
+            if (!chartsData.by_weekday || !chartsData.by_weekday.labels) {
+                console.warn('Dados de dia da semana não encontrados');
+                chartsData.by_weekday = {
+                    labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
+                    datasets: [{
+                        label: 'Gastos por Dia da Semana',
+                        data: [0, 0, 0, 0, 0, 0, 0],
+                        backgroundColor: 'rgba(239, 68, 68, 0.5)',
+                        borderColor: 'rgba(239, 68, 68, 1)',
+                        borderWidth: 2
+                    }]
+                };
+            }
+            
+            weekdayChart = new Chart(weekdayChartCtx, {
+                type: 'bar',
+                data: chartsData.by_weekday,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const value = formatCurrency(context.parsed.y || 0);
+                                    return `Gastos: ${value}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatCurrency(value);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ========== GRÁFICO POR HORÁRIO ==========
+        const hourCtx = document.getElementById('hourChart');
+        if (!hourCtx) {
+            console.error('Elemento hourChart não encontrado!');
+        } else {
+            // Destrói gráfico anterior de forma segura
+            hourChart = destroyChart(hourChart);
+            
+            const hourChartCtx = hourCtx.getContext('2d');
+            
+            // Valida dados
+            if (!chartsData.by_hour || !chartsData.by_hour.labels) {
+                console.warn('Dados de horário não encontrados');
+                const hourLabels = [];
+                for (let h = 0; h < 24; h++) {
+                    hourLabels.push(`${h.toString().padStart(2, '0')}:00`);
+                }
+                chartsData.by_hour = {
+                    labels: hourLabels,
+                    datasets: [{
+                        label: 'Gastos por Horário',
+                        data: new Array(24).fill(0),
+                        backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                        borderColor: 'rgba(239, 68, 68, 1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                };
+            }
+            
+            hourChart = new Chart(hourChartCtx, {
+                type: 'line',
+                data: chartsData.by_hour,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const value = formatCurrency(context.parsed.y || 0);
+                                    return `Gastos: ${value}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatCurrency(value);
+                                }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                maxTicksLimit: 12  // Mostra apenas algumas horas para não ficar muito cheio
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        console.log('Gráficos carregados com sucesso!');
+
+    } catch (error) {
+        console.error('Erro ao carregar gráficos:', error);
+        console.error('Stack trace:', error.stack);
+        
+        // Mostra mensagem de erro no lugar dos gráficos
+        const chartContainers = [
+            { id: 'categoryChart', name: 'Categoria' },
+            { id: 'weekdayChart', name: 'Dia da Semana' },
+            { id: 'hourChart', name: 'Horário' }
+        ];
+        
+        chartContainers.forEach(chart => {
+            const container = document.getElementById(chart.id);
+            if (container) {
+                const parent = container.parentElement;
+                if (parent) {
+                    parent.innerHTML = `
+                        <div class="flex items-center justify-center h-64 text-red-600">
+                            <p>Erro ao carregar gráfico ${chart.name}: ${error.message}</p>
+                        </div>
+                    `;
+                }
+            }
+        });
+    }
+}
+
+// Função para atualizar tabela de transações
+function updateTransactionsTable(data) {
+    const tbody = document.getElementById('transactionsTableBody');
+    const transactions = data.transactions || data || [];
+    
+    if (transactions.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="px-6 py-4 text-center text-gray-500">
+                    Nenhuma transação encontrada
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = transactions.map(trans => {
+        const typeClass = trans.type === 'income' ? 'text-green-600' : 'text-red-600';
+        const typeLabel = trans.type === 'income' ? 'Entrada' : 'Gasto';
+        const sign = trans.type === 'expense' ? '-' : '+';
+        
+        // Formata data e hora
+        let dateStr = '-';
+        let timeStr = '-';
+        
+        if (trans.date) {
+            // Se já tem date formatado do backend, formata novamente para garantir
+            dateStr = formatDate(trans.date);
+            timeStr = trans.time || '-';
+        } else if (trans.created_at) {
+            // Se tem created_at, formata data e hora
+            const date = new Date(trans.created_at);
+            dateStr = formatDate(date);
+            timeStr = date.toLocaleTimeString('pt-BR', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false 
+            });
+        }
+        
+        // Formata ID (mostra apenas primeiros caracteres)
+        const idStr = trans.id ? (trans.id.length > 8 ? trans.id.substring(0, 8) + '...' : trans.id) : '-';
+        
+        return `
+            <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">${idStr}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${dateStr}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${timeStr}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${trans.category || 'outros'}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${trans.type === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                        ${typeLabel}
+                    </span>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-900">${trans.description || '-'}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-right ${typeClass}">
+                    ${sign}${formatCurrency(trans.value || 0)}
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// Variáveis de paginação
+let currentTransactionsPage = 1;
+let transactionsLimit = 20;
+let transactionsPagination = null;
+
+// Função para carregar transações com paginação
+async function loadTransactions(page = 1, limit = 20) {
+    try {
+        const period = document.getElementById('periodFilter').value;
+        const response = await fetch(`${API_BASE}/transactions/?period=${period}&page=${page}&limit=${limit}`);
+        const data = await response.json();
+        
+        if (data.transactions) {
+            updateTransactionsTable(data);
+            transactionsPagination = data;
+            currentTransactionsPage = data.page || page;
+            transactionsLimit = limit;
+            
+            // Atualiza controles de paginação
+            document.getElementById('currentPageInfo').textContent = `Página ${data.page} de ${data.total_pages || 1}`;
+            document.getElementById('prevPageBtn').disabled = !data.has_prev;
+            document.getElementById('nextPageBtn').disabled = !data.has_next;
+            document.getElementById('transactionsPaginationInfo').textContent = 
+                `Total: ${data.total || 0} transações`;
+        }
+    } catch (error) {
+        console.error('Erro ao carregar transações:', error);
+    }
+}
+
+// Função para recarregar tudo
+async function reloadDashboard() {
+    const period = document.getElementById('periodFilter').value;
+    currentTransactionsPage = 1; // Reset para primeira página
+    await Promise.all([
+        loadDashboardData(period),
+        loadCharts(period),
+        loadTransactions(1, transactionsLimit)
+    ]);
+}
+
+// Event listeners
+document.getElementById('periodFilter').addEventListener('change', reloadDashboard);
+
+document.getElementById('generateReportBtn').addEventListener('click', async () => {
+    const period = document.getElementById('periodFilter').value;
+    const btn = document.getElementById('generateReportBtn');
+    
+    // Desabilita botão durante geração
+    btn.disabled = true;
+    btn.textContent = 'Gerando...';
+    
+    try {
+        // Gera relatório via API
+        const response = await fetch(`${API_BASE}/report/?period=${period}&format=json`);
+        const data = await response.json();
+        
+        if (data.error) {
+            alert(`Erro: ${data.error}`);
+            return;
+        }
+        
+        // Opção 1: Abrir em nova página
+        const reportUrl = `/finance/report/?period=${period}`;
+        window.open(reportUrl, '_blank');
+        
+        // Opção 2: Mostrar em modal (comentado)
+        // showReportModal(data);
+        
+    } catch (error) {
+        console.error('Erro ao gerar relatório:', error);
+        alert('Erro ao gerar relatório. Tente novamente.');
+    } finally {
+        // Reabilita botão
+        btn.disabled = false;
+        btn.textContent = '📊 Gerar Relatório';
+    }
+});
+
+// Paginação de transações
+document.getElementById('prevPageBtn').addEventListener('click', () => {
+    if (transactionsPagination && transactionsPagination.has_prev) {
+        loadTransactions(currentTransactionsPage - 1, transactionsLimit);
+    }
+});
+
+document.getElementById('nextPageBtn').addEventListener('click', () => {
+    if (transactionsPagination && transactionsPagination.has_next) {
+        loadTransactions(currentTransactionsPage + 1, transactionsLimit);
+    }
+});
+
+document.getElementById('transactionsLimit').addEventListener('change', (e) => {
+    const newLimit = parseInt(e.target.value);
+    loadTransactions(1, newLimit); // Reset para primeira página ao mudar limite
+});
+
+// ===== GERENCIAMENTO DE CATEGORIAS =====
+let categoriesData = {};
+
+// Função para carregar categorias
+async function loadCategories() {
+    try {
+        const response = await fetch(`${API_BASE}/categorias/`);
+        const data = await response.json();
+        
+        if (data.categorias) {
+            // Agrupa categorias por tipo
+            categoriesData = {};
+            data.categorias.forEach(cat => {
+                const tipo = cat.tipo || 'outros';
+                if (!categoriesData[tipo]) {
+                    categoriesData[tipo] = [];
+                }
+                categoriesData[tipo].push({
+                    nome: cat.nome,
+                    tipo: tipo
+                });
+            });
+            
+            renderCategories();
+        }
+    } catch (error) {
+        console.error('Erro ao carregar categorias:', error);
+    }
+}
+
+// Função para renderizar categorias no modal
+function renderCategories() {
+    const container = document.getElementById('categoriesList');
+    const tiposLabels = {
+        'receita': 'Receitas',
+        'entrada': 'Outras Entradas',
+        'investimento': 'Investimentos',
+        'alimentacao': 'Alimentação',
+        'transporte': 'Transporte',
+        'saude': 'Saúde e Bem Estar',
+        'lazer': 'Lazer',
+        'educacao': 'Educação',
+        'habitacao': 'Habitação',
+        'outros': 'Demais Despesas'
+    };
+    
+    if (Object.keys(categoriesData).length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-500 py-8">Nenhuma categoria encontrada.</div>';
+        return;
+    }
+    
+    let html = '';
+    for (const [tipo, categorias] of Object.entries(categoriesData)) {
+        const tipoLabel = tiposLabels[tipo] || tipo;
+        html += `
+            <div class="border border-gray-200 rounded-lg p-4">
+                <h5 class="text-md font-semibold text-gray-800 mb-3">${tipoLabel}</h5>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+        `;
+        
+        categorias.forEach(cat => {
+            html += `
+                <div class="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-200">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-900 truncate">${cat.nome}</p>
+                    </div>
+                    <button onclick="deleteCategory('${tipo}', '${cat.nome}')" 
+                            class="ml-2 px-2 py-1 text-xs text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors">
+                        Remover
+                    </button>
+                </div>
+            `;
+        });
+        
+        html += `
+                </div>
+            </div>
+        `;
+    }
+    
+    container.innerHTML = html;
+}
+
+// Função para adicionar categoria
+async function addCategory() {
+    const nome = document.getElementById('newCategoryName').value.trim();
+    const tipo = document.getElementById('newCategoryType').value;
+    const descricao = document.getElementById('newCategoryDesc').value.trim();
+    
+    if (!nome || !tipo) {
+        alert('Nome e tipo são obrigatórios');
+        return;
+    }
+    
+    try {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                         document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+        
+        const formData = new FormData();
+        formData.append('action', 'add');
+        formData.append('nome', nome);
+        formData.append('tipo', tipo);
+        formData.append('csrfmiddlewaretoken', csrfToken);
+        
+        const response = await fetch('/finance/categorias/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': csrfToken
+            }
+        });
+        
+        if (response.ok || response.redirected) {
+            // Limpa formulário
+            document.getElementById('addCategoryForm').reset();
+            // Recarrega categorias
+            await loadCategories();
+        } else {
+            alert('Erro ao adicionar categoria');
+        }
+    } catch (error) {
+        console.error('Erro ao adicionar categoria:', error);
+        alert('Erro ao adicionar categoria. Tente novamente.');
+    }
+}
+
+// Função para deletar categoria
+async function deleteCategory(tipo, categoriaNome) {
+    if (!confirm(`Tem certeza que deseja remover a categoria "${categoriaNome}"?`)) {
+        return;
+    }
+    
+    try {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                         document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+        
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', csrfToken);
+        formData.append('action', 'remove');
+        formData.append('tipo', tipo);
+        formData.append('nome', categoriaNome);
+        
+        const response = await fetch('/finance/categorias/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': csrfToken
+            }
+        });
+        
+        if (response.ok || response.redirected) {
+            // Recarrega categorias
+            await loadCategories();
+        } else {
+            alert('Erro ao remover categoria');
+        }
+    } catch (error) {
+        console.error('Erro ao deletar categoria:', error);
+        alert('Erro ao remover categoria. Tente novamente.');
+    }
+}
+
+// Event listeners do modal
+document.getElementById('manageCategoriesBtn').addEventListener('click', () => {
+    document.getElementById('categoriesModal').classList.remove('hidden');
+    loadCategories();
+});
+
+document.getElementById('closeCategoriesModal').addEventListener('click', () => {
+    document.getElementById('categoriesModal').classList.add('hidden');
+});
+
+document.getElementById('closeCategoriesModalBtn').addEventListener('click', () => {
+    document.getElementById('categoriesModal').classList.add('hidden');
+});
+
+// Fechar modal ao clicar fora
+document.getElementById('categoriesModal').addEventListener('click', (e) => {
+    if (e.target.id === 'categoriesModal') {
+        document.getElementById('categoriesModal').classList.add('hidden');
+    }
+});
+
+// Formulário de adicionar categoria
+document.getElementById('addCategoryForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await addCategory();
+});
+
+// Carrega dados iniciais
+document.addEventListener('DOMContentLoaded', () => {
+    reloadDashboard();
+});
+</script>
+{% endblock %}
+

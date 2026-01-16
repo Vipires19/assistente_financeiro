@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Agenda{% endblock %}
+
+{% block extra_head %}
+<!-- FullCalendar CSS -->
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
+<style>
+    .fc {
+        font-family: inherit;
+    }
+    .fc-event {
+        cursor: pointer;
+        border-radius: 4px;
+    }
+    .fc-event.pendente { background-color: #ffc107; border-color: #ffc107; }
+    .fc-event.confirmado { background-color: #17a2b8; border-color: #17a2b8; }
+    .fc-event.concluido { background-color: #28a745; border-color: #28a745; }
+    .fc-event.cancelado { background-color: #dc3545; border-color: #dc3545; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'finance:dashboard' %}" class="text-gray-600 hover:text-gray-900">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                    </a>
+                    <h1 class="text-xl font-semibold text-gray-900">Agenda</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-gray-600 hidden sm:inline">{{ user.email }}</span>
+                    <a href="{% url 'core:logout' %}" class="text-sm text-gray-600 hover:text-gray-900">
+                        Sair
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <!-- Filtros e Controles -->
+        <div class="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2">
+                    <label for="filtro-view" class="text-sm font-medium text-gray-700">Visualização:</label>
+                    <select id="filtro-view" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="dayGridMonth">Mês</option>
+                        <option value="timeGridWeek">Semana</option>
+                        <option value="timeGridDay">Dia</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button id="addCompromissoBtn" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                    ➕ Novo Compromisso
+                </button>
+            </div>
+        </div>
+
+        <!-- Calendário -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div id="calendar"></div>
+        </div>
+    </main>
+</div>
+
+<!-- Modal para Criar/Editar Compromisso -->
+<div id="compromissoModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium text-gray-900" id="modalTitle">Novo Compromisso</h3>
+                <button id="closeModal" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <form id="compromissoForm">
+                <input type="hidden" id="compromissoId" />
+                
+                <div class="mb-4">
+                    <label for="titulo" class="block text-sm font-medium text-gray-700 mb-2">
+                        Título <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="titulo" name="titulo" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                
+                <div class="mb-4">
+                    <label for="descricao" class="block text-sm font-medium text-gray-700 mb-2">
+                        Descrição
+                    </label>
+                    <textarea id="descricao" name="descricao" rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="data" class="block text-sm font-medium text-gray-700 mb-2">
+                        Data <span class="text-red-500">*</span>
+                    </label>
+                    <input type="date" id="data" name="data" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="hora" class="block text-sm font-medium text-gray-700 mb-2">
+                            Horário de Início <span class="text-red-500">*</span>
+                        </label>
+                        <input type="time" id="hora" name="hora" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label for="hora_fim" class="block text-sm font-medium text-gray-700 mb-2">
+                            Horário de Término <span class="text-red-500">*</span>
+                        </label>
+                        <input type="time" id="hora_fim" name="hora_fim" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="tipo" class="block text-sm font-medium text-gray-700 mb-2">
+                        Tipo
+                    </label>
+                    <select id="tipo" name="tipo"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Selecione...</option>
+                        <option value="Reunião">Reunião</option>
+                        <option value="Serviço">Serviço</option>
+                        <option value="Consulta">Consulta</option>
+                        <option value="Compromisso">Compromisso</option>
+                        <option value="Outros">Outros</option>
+                    </select>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="status" class="block text-sm font-medium text-gray-700 mb-2">
+                        Status
+                    </label>
+                    <select id="status" name="status"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="pendente">Pendente</option>
+                        <option value="confirmado">Confirmado</option>
+                        <option value="concluido">Concluído</option>
+                        <option value="cancelado">Cancelado</option>
+                    </select>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="cancelBtn" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Salvar
+                    </button>
+                    <button type="button" id="deleteBtn" class="hidden px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                        Excluir
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- FullCalendar JS -->
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/locales/pt-br.global.min.js'></script>
+<script src="{% static 'finance/js/agenda.js' %}"></script>
+{% endblock %}

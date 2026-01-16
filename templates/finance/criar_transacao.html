@@ -1,0 +1,285 @@
+{% extends 'base.html' %}
+
+{% block title %}Criar Transação{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'finance:dashboard' %}" class="text-gray-600 hover:text-gray-900">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                    </a>
+                    <h1 class="text-xl font-semibold text-gray-900">Criar Lançamento</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-gray-600 hidden sm:inline">{{ user.email }}</span>
+                    <a href="{% url 'core:logout' %}" class="text-sm text-gray-600 hover:text-gray-900">
+                        Sair
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Novo Lançamento</h2>
+            
+            <form id="transactionForm" method="POST" action="/finance/api/transactions/create/">
+                {% csrf_token %}
+                
+                <div class="space-y-6">
+                    <!-- Tipo de Transação -->
+                    <div>
+                        <label for="tipo" class="block text-sm font-medium text-gray-700 mb-2">
+                            Tipo de Lançamento <span class="text-red-500">*</span>
+                        </label>
+                        <select id="tipo" name="tipo" required
+                                class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base">
+                            <option value="">Selecione o tipo...</option>
+                            <option value="income">Entrada</option>
+                            <option value="expense">Gasto</option>
+                        </select>
+                        <p class="mt-1 text-sm text-gray-500">Selecione se é uma entrada (receita) ou um gasto (despesa)</p>
+                    </div>
+                    
+                    <!-- Data e Hora -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="data" class="block text-sm font-medium text-gray-700 mb-2">
+                                Data <span class="text-red-500">*</span>
+                            </label>
+                            <input type="date" id="data" name="data" required
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base">
+                        </div>
+                        
+                        <div>
+                            <label for="hora" class="block text-sm font-medium text-gray-700 mb-2">
+                                Hora <span class="text-red-500">*</span>
+                            </label>
+                            <input type="time" id="hora" name="hora" required
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base">
+                        </div>
+                    </div>
+                    
+                    <!-- Categoria -->
+                    <div>
+                        <label for="categoria" class="block text-sm font-medium text-gray-700 mb-2">
+                            Categoria <span class="text-red-500">*</span>
+                        </label>
+                        <select id="categoria" name="categoria" required
+                                class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base">
+                            <option value="">Selecione uma categoria...</option>
+                            <!-- Categorias serão carregadas dinamicamente via JavaScript -->
+                        </select>
+                        <p class="mt-1 text-sm text-gray-500">Categorias personalizadas do seu perfil</p>
+                    </div>
+                    
+                    <!-- Descrição -->
+                    <div>
+                        <label for="descricao" class="block text-sm font-medium text-gray-700 mb-2">
+                            Descrição <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="descricao" name="descricao" required
+                               class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base"
+                               placeholder="Ex: Compra de cigarro no posto Martines">
+                        <p class="mt-1 text-sm text-gray-500">Descreva o lançamento de forma clara</p>
+                    </div>
+                    
+                    <!-- Valor -->
+                    <div>
+                        <label for="valor" class="block text-sm font-medium text-gray-700 mb-2">
+                            Valor (R$) <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg">R$</span>
+                            <input type="number" id="valor" name="valor" step="0.01" min="0.01" required
+                                   class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base"
+                                   placeholder="0.00">
+                        </div>
+                        <p id="valorPreview" class="mt-2 text-lg font-semibold">
+                            <span id="valorDisplay" class="text-gray-400">R$ 0,00</span>
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="mt-8 flex space-x-4">
+                    <button type="submit" id="submitBtn"
+                            class="flex-1 px-6 py-3 bg-primary-600 text-white text-base font-medium rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                        Salvar Lançamento
+                    </button>
+                    <a href="{% url 'finance:dashboard' %}"
+                       class="flex-1 px-6 py-3 bg-gray-200 text-gray-700 text-base font-medium rounded-lg hover:bg-gray-300 transition-colors text-center">
+                        Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </main>
+</div>
+
+<script>
+// Configuração inicial
+let categoriasData = [];
+
+// Carrega categorias do usuário ao carregar a página
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadCategorias();
+    
+    // Define data e hora padrão (hoje e agora)
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const timeStr = now.toTimeString().slice(0, 5);
+    
+    document.getElementById('data').value = dateStr;
+    document.getElementById('hora').value = timeStr;
+    
+    // Atualiza categorias quando tipo muda
+    document.getElementById('tipo').addEventListener('change', updateCategorias);
+    
+    // Atualiza preview do valor
+    document.getElementById('valor').addEventListener('input', updateValorPreview);
+    
+    // Atualiza cor do valor quando tipo muda
+    document.getElementById('tipo').addEventListener('change', updateValorPreview);
+});
+
+// Função para carregar categorias
+async function loadCategorias() {
+    try {
+        const response = await fetch('/finance/api/categorias/');
+        const data = await response.json();
+        
+        if (data.categorias) {
+            categoriasData = data.categorias;
+            updateCategorias();
+        }
+    } catch (error) {
+        console.error('Erro ao carregar categorias:', error);
+        alert('Erro ao carregar categorias. Recarregue a página.');
+    }
+}
+
+// Função para atualizar categorias baseado no tipo
+function updateCategorias() {
+    const tipoSelect = document.getElementById('tipo');
+    const categoriaSelect = document.getElementById('categoria');
+    const tipo = tipoSelect.value;
+    
+    // Limpa opções atuais
+    categoriaSelect.innerHTML = '<option value="">Selecione uma categoria...</option>';
+    
+    if (!tipo || categoriasData.length === 0) {
+        return;
+    }
+    
+    // Filtra categorias baseado no tipo de transação
+    const categoriasFiltradas = categoriasData.filter(cat => {
+        if (tipo === 'income') {
+            // Para entradas, mostra receitas, entradas e investimentos
+            return cat.tipo === 'receita' || cat.tipo === 'entrada' || cat.tipo === 'investimento';
+        } else {
+            // Para gastos, mostra todas exceto receitas, entradas e investimentos
+            return cat.tipo !== 'receita' && cat.tipo !== 'entrada' && cat.tipo !== 'investimento';
+        }
+    });
+    
+    categoriasFiltradas.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat.nome;
+        option.textContent = cat.display || `${cat.nome} (${cat.label_tipo || cat.tipo})`;
+        categoriaSelect.appendChild(option);
+    });
+}
+
+// Função para atualizar preview do valor com cor
+function updateValorPreview() {
+    const valorInput = document.getElementById('valor');
+    const tipoSelect = document.getElementById('tipo');
+    const valorDisplay = document.getElementById('valorDisplay');
+    
+    const valor = parseFloat(valorInput.value) || 0;
+    const tipo = tipoSelect.value;
+    
+    // Formata valor
+    const valorFormatado = new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    }).format(valor);
+    
+    // Atualiza cor baseado no tipo
+    if (tipo === 'expense') {
+        valorDisplay.className = 'text-red-600';
+        valorDisplay.textContent = `- ${valorFormatado}`;
+    } else if (tipo === 'income') {
+        valorDisplay.className = 'text-green-600';
+        valorDisplay.textContent = `+ ${valorFormatado}`;
+    } else {
+        valorDisplay.className = 'text-gray-400';
+        valorDisplay.textContent = valorFormatado;
+    }
+}
+
+// Submissão do formulário
+document.getElementById('transactionForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const submitBtn = document.getElementById('submitBtn');
+    const originalText = submitBtn.textContent;
+    
+    // Desabilita botão durante submissão
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Salvando...';
+    
+    const formData = new FormData(e.target);
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    // Combina data e hora
+    const data = formData.get('data');
+    const hora = formData.get('hora');
+    const dataHora = `${data}T${hora}:00`;
+    
+    // Prepara dados
+    const transactionData = {
+        tipo: formData.get('tipo'),
+        categoria: formData.get('categoria'),
+        descricao: formData.get('descricao'),
+        valor: formData.get('valor'),
+        data: dataHora
+    };
+    
+    try {
+        const response = await fetch('/finance/api/transactions/create/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(transactionData)
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            alert('Lançamento criado com sucesso!');
+            window.location.href = '/finance/dashboard/';
+        } else {
+            alert(data.error || 'Erro ao criar lançamento. Tente novamente.');
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        alert('Erro ao criar lançamento. Tente novamente.');
+    } finally {
+        // Reabilita botão
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    }
+});
+</script>
+{% endblock %}
