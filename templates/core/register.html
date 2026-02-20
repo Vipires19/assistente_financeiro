@@ -44,6 +44,68 @@
                     >
                 </div>
                 
+                <!-- Nome -->
+                <div>
+                    <label for="nome" class="block text-sm font-medium text-gray-700 mb-2">
+                        Nome Completo
+                    </label>
+                    <input
+                        id="nome"
+                        name="nome"
+                        type="text"
+                        required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                        placeholder="Seu nome completo"
+                    >
+                </div>
+                
+                <!-- Telefone -->
+                <div>
+                    <label for="telefone" class="block text-sm font-medium text-gray-700 mb-2">
+                        Telefone
+                    </label>
+                    <input
+                        id="telefone"
+                        name="telefone"
+                        type="text"
+                        required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                        placeholder="11999999999"
+                    >
+                    <p class="mt-1 text-xs text-gray-500">Digite apenas números (ex: 11999999999)</p>
+                </div>
+
+                <!-- Cidade -->
+                <div>
+                    <label for="cidade" class="block text-sm font-medium text-gray-700 mb-2">
+                        Cidade
+                    </label>
+                    <input
+                        id="cidade"
+                        name="cidade"
+                        type="text"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                        placeholder="Sua cidade"
+                        value="{{ cidade|default:'' }}"
+                    >
+                </div>
+
+                <!-- Estado -->
+                <div>
+                    <label for="estado" class="block text-sm font-medium text-gray-700 mb-2">
+                        Estado
+                    </label>
+                    <input
+                        id="estado"
+                        name="estado"
+                        type="text"
+                        maxlength="2"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                        placeholder="UF (ex: SP)"
+                        value="{{ estado|default:'' }}"
+                    >
+                </div>
+                
                 <!-- Password -->
                 <div>
                     <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
@@ -75,6 +137,28 @@
                         placeholder="Digite a senha novamente"
                     >
                 </div>
+
+                <!-- Aceite dos Termos de Uso -->
+                <div class="flex items-start">
+                    <input
+                        id="aceite_termos"
+                        name="aceite_termos"
+                        type="checkbox"
+                        required
+                        value="1"
+                        class="mt-1 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    >
+                    <label for="aceite_termos" class="ml-2 block text-sm text-gray-700">
+                        Li e concordo com os
+                        <a href="{% url 'core:termos_de_uso' %}" target="_blank" rel="noopener noreferrer" class="text-primary-600 hover:text-primary-700 font-medium underline">
+                            Termos de Uso
+                        </a>
+                        e com a
+                        <a href="{% url 'core:politica_privacidade' %}" target="_blank" rel="noopener noreferrer" class="text-primary-600 hover:text-primary-700 font-medium underline">
+                            Política de Privacidade
+                        </a>
+                    </label>
+                </div>
                 
                 <!-- Submit Button -->
                 <button
@@ -96,10 +180,6 @@
             </div>
         </div>
         
-        <!-- Footer -->
-        <p class="mt-6 text-center text-xs text-gray-500">
-            © 2024 Dashboard. Todos os direitos reservados.
-        </p>
     </div>
 </div>
 {% endblock %}

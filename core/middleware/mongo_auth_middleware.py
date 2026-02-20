@@ -19,6 +19,17 @@ class MongoAuthMiddleware:
         self.EXEMPT_PATHS = [
             '/login/',
             '/register/',
+            '/confirmar-email/',
+            '/verificar-email/',
+            '/email-nao-confirmado/',
+            '/reenviar-confirmacao/',
+            '/verificar-email-sucesso/',
+            '/planos/',
+            '/recuperar-senha/',
+            '/resetar-senha/',
+            '/senha-redefinida/',
+            '/termos-de-uso/',
+            '/politica-de-privacidade/',
             '/logout/',
             '/admin/',
         ]

@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}Confirme seu email - Leozera{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-gray-50 to-gray-100">
+    <div class="max-w-md w-full">
+        <div class="bg-white rounded-xl shadow-lg p-8 sm:p-10 text-center">
+            <div class="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-primary-100 text-primary-600 mb-4">
+                <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 mb-2">Cadastro realizado</h1>
+            <p class="text-gray-600 mb-6">
+                Enviamos um email de confirmação para você. Clique no link dentro do email para ativar sua conta.
+            </p>
+            <p class="text-sm text-gray-500 mb-6">
+                O link expira em 10 minutos. Se não receber, verifique a pasta de spam.
+            </p>
+            <a href="{% url 'core:login' %}" class="inline-block w-full py-3 px-4 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors shadow-sm text-center">
+                Ir para o login
+            </a>
+            <button type="button" id="reenviarEmailBtn" class="w-full mt-3 py-3 px-4 border border-primary-600 text-primary-600 font-medium rounded-lg hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                Reenviar email de confirmação
+            </button>
+            <div id="reenviarFeedback" class="mt-2 text-sm min-h-[1.5rem]"></div>
+            <div style="display:none">{% csrf_token %}</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    var email = "{{ email|escapejs }}";
+    var btn = document.getElementById('reenviarEmailBtn');
+    var feedback = document.getElementById('reenviarFeedback');
+    var csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+    var csrfToken = csrfInput ? csrfInput.value : '';
+    function setFeedback(msg, isError) {
+        feedback.textContent = msg;
+        feedback.className = 'mt-2 text-sm min-h-[1.5rem] ' + (isError ? 'text-red-600' : 'text-green-600');
+    }
+    function disableFor60s() {
+        btn.disabled = true;
+        var left = 60;
+        var t = setInterval(function() {
+            left--;
+            btn.textContent = 'Aguarde ' + left + 's para reenviar';
+            if (left <= 0) {
+                clearInterval(t);
+                btn.disabled = false;
+                btn.textContent = 'Reenviar email de confirmação';
+            }
+        }, 1000);
+    }
+    btn.addEventListener('click', function() {
+        if (!email) {
+            setFeedback('Email não disponível para reenvio.', true);
+            return;
+        }
+        setFeedback('Enviando...', false);
+        btn.disabled = true;
+        fetch('{% url "core:reenviar_confirmacao" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ email: email })
+        })
+        .then(function(r) {
+            return r.json().then(function(data) {
+                return { status: r.status, data: data };
+            }).catch(function() {
+                return { status: r.status, data: {} };
+            });
+        })
+        .then(function(result) {
+            if (result.status >= 200 && result.status < 300) {
+                setFeedback(result.data.message || 'Email reenviado com sucesso.', false);
+                disableFor60s();
+            } else {
+                setFeedback(result.data.message || 'Erro ao reenviar.', true);
+                btn.disabled = false;
+            }
+        })
+        .catch(function() {
+            setFeedback('Erro de conexão. Tente novamente.', true);
+            btn.disabled = false;
+        });
+    });
+})();
+</script>
+{% endblock %}

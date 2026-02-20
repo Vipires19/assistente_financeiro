@@ -1,0 +1,1 @@
+# Serviços compartilhados (WAHA, etc.)

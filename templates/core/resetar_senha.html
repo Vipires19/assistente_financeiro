@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Redefinir senha - Leozera{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-gray-50">
+    <div class="max-w-md w-full">
+        <div class="bg-white rounded-2xl shadow-md p-8 sm:p-10">
+            <div class="text-center mb-8">
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Redefinir senha</h1>
+                <p class="text-gray-600 text-sm">Digite e confirme sua nova senha (mínimo 6 caracteres).</p>
+            </div>
+            {% if messages %}
+            <div class="mb-6 space-y-2">
+                {% for message in messages %}
+                <div class="rounded-lg p-3 text-sm {% if message.tags == 'error' %}bg-red-50 text-red-800 border border-red-200{% else %}bg-green-50 text-green-800 border border-green-200{% endif %}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            <form id="form-resetar" method="POST" action="{% url 'core:resetar_senha' token %}" class="space-y-6">
+                {% csrf_token %}
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Nova senha</label>
+                    <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        required
+                        minlength="6"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                        placeholder="Mínimo 6 caracteres"
+                    >
+                    <p id="err-length" class="mt-1 text-xs text-red-600 hidden">A senha deve ter no mínimo 6 caracteres.</p>
+                </div>
+                <div>
+                    <label for="password_confirm" class="block text-sm font-medium text-gray-700 mb-2">Confirmar senha</label>
+                    <input
+                        id="password_confirm"
+                        name="password_confirm"
+                        type="password"
+                        required
+                        minlength="6"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                        placeholder="Repita a nova senha"
+                    >
+                    <p id="err-match" class="mt-1 text-xs text-red-600 hidden">As senhas não coincidem.</p>
+                </div>
+                <button type="submit" class="w-full py-3 px-4 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors shadow-sm">
+                    Redefinir senha
+                </button>
+            </form>
+            <p class="mt-6 text-center">
+                <a href="{% url 'core:login' %}" class="text-sm text-primary-600 hover:text-primary-700">Voltar ao login</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    var form = document.getElementById('form-resetar');
+    var pass = document.getElementById('password');
+    var passConfirm = document.getElementById('password_confirm');
+    var errLength = document.getElementById('err-length');
+    var errMatch = document.getElementById('err-match');
+
+    function hideErrors() {
+        errLength.classList.add('hidden');
+        errMatch.classList.add('hidden');
+    }
+
+    form.addEventListener('submit', function(e) {
+        hideErrors();
+        var valid = true;
+        if (pass.value.length < 6) {
+            errLength.classList.remove('hidden');
+            valid = false;
+        }
+        if (pass.value !== passConfirm.value) {
+            errMatch.classList.remove('hidden');
+            valid = false;
+        }
+        if (!valid) e.preventDefault();
+    });
+
+    pass.addEventListener('input', function() { if (pass.value.length >= 6) errLength.classList.add('hidden'); });
+    passConfirm.addEventListener('input', function() { if (pass.value === passConfirm.value) errMatch.classList.add('hidden'); });
+})();
+</script>
+{% endblock %}

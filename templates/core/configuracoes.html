@@ -1,0 +1,190 @@
+{% extends 'base_dashboard.html' %}
+{% load static %}
+
+{% block title %}Configurações - Leozera{% endblock %}
+
+{% block extra_head %}
+<style>
+    .config-page { max-width: 42rem; margin: 0 auto; }
+    .config-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        transition: box-shadow 0.3s ease, border-color 0.3s ease;
+    }
+    .config-card:hover {
+        box-shadow: 0 0 0 1px var(--accent-blue), 0 4px 14px rgba(14, 165, 233, 0.12);
+    }
+    body.dark-mode .config-card:hover {
+        box-shadow: 0 0 0 1px rgba(14, 165, 233, 0.4), 0 4px 14px rgba(0, 0, 0, 0.3);
+    }
+    .config-card h2 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 1.25rem 0;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--card-border);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .config-card h2 i { color: var(--neon-green); }
+    .config-form .form-group { margin-bottom: 1rem; }
+    .config-form label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 0.375rem;
+    }
+    .config-form input[type="text"],
+    .config-form input[type="email"],
+    .config-form input[type="password"],
+    .config-form input[type="tel"],
+    .config-form input[type="file"] {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.5rem;
+        border: 1px solid var(--card-border);
+        background: var(--content-bg);
+        color: var(--text-primary);
+        font-size: 0.9375rem;
+    }
+    .config-form input:focus {
+        outline: none;
+        border-color: var(--accent-blue);
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+    }
+    .config-form .btn-save {
+        padding: 0.5rem 1.25rem;
+        border-radius: 0.5rem;
+        border: none;
+        background: var(--neon-green);
+        color: #0f172a;
+        font-weight: 600;
+        font-size: 0.9375rem;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .config-form .btn-save:hover {
+        box-shadow: 0 0 12px var(--neon-glow);
+        transform: translateY(-1px);
+    }
+    .config-avatar-wrap {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    .config-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--card-border);
+    }
+    .config-avatar-placeholder {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: var(--secondary-blue);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--sidebar-text);
+        font-size: 2rem;
+    }
+    .config-form small { font-size: 0.8125rem; color: var(--text-muted); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="config-page">
+    <h1 class="mb-4" style="font-size: 1.5rem; font-weight: 600; color: var(--text-primary);">
+        <i class="bi bi-gear me-2"></i>Configurações
+    </h1>
+
+    {% if messages %}
+    <div class="mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Bloco Perfil -->
+    <div class="config-card">
+        <h2><i class="bi bi-person-circle"></i> Perfil</h2>
+        <form method="post" action="{% url 'core:configuracoes' %}" enctype="multipart/form-data" class="config-form">
+            {% csrf_token %}
+            <input type="hidden" name="form_type" value="perfil" />
+            <div class="config-avatar-wrap">
+                {% if user.profile_image %}
+                <img src="/media/{{ user.profile_image }}" alt="Foto de perfil" class="config-avatar" />
+                {% else %}
+                <div class="config-avatar-placeholder"><i class="bi bi-person-fill"></i></div>
+                {% endif %}
+                <div>
+                    <label for="id_profile_image">Foto de perfil</label>
+                    <input type="file" name="profile_image" id="id_profile_image" accept="image/*" />
+                    <small class="d-block mt-1">JPG, PNG ou GIF. Máx. 5 MB.</small>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="id_nome">Nome</label>
+                <input type="text" name="nome" id="id_nome" value="{{ user.nome|default:'' }}" placeholder="Seu nome" />
+            </div>
+            <div class="form-group">
+                <label for="id_telefone">Telefone</label>
+                <input type="tel" name="telefone" id="id_telefone" value="{{ user.telefone|default:'' }}" placeholder="(11) 99999-9999" />
+            </div>
+            <button type="submit" class="btn-save"><i class="bi bi-check-lg me-1"></i> Salvar perfil</button>
+        </form>
+    </div>
+
+    <!-- Bloco Segurança: Senha -->
+    <div class="config-card">
+        <h2><i class="bi bi-shield-lock"></i> Alterar senha</h2>
+        <form method="post" action="{% url 'core:configuracoes' %}" class="config-form">
+            {% csrf_token %}
+            <input type="hidden" name="form_type" value="senha" />
+            <div class="form-group">
+                <label for="id_senha_atual">Senha atual</label>
+                <input type="password" name="senha_atual" id="id_senha_atual" required placeholder="Digite sua senha atual" autocomplete="current-password" />
+            </div>
+            <div class="form-group">
+                <label for="id_nova_senha">Nova senha</label>
+                <input type="password" name="nova_senha" id="id_nova_senha" required placeholder="Mínimo 6 caracteres" autocomplete="new-password" />
+            </div>
+            <div class="form-group">
+                <label for="id_confirmar_senha">Confirmar nova senha</label>
+                <input type="password" name="confirmar_senha" id="id_confirmar_senha" required placeholder="Repita a nova senha" autocomplete="new-password" />
+            </div>
+            <button type="submit" class="btn-save"><i class="bi bi-key me-1"></i> Alterar senha</button>
+        </form>
+    </div>
+
+    <!-- Bloco Segurança: Email -->
+    <div class="config-card">
+        <h2><i class="bi bi-envelope"></i> Alterar email</h2>
+        <p class="small text-muted mb-3">Email atual: <strong>{{ user.email }}</strong></p>
+        <form method="post" action="{% url 'core:configuracoes' %}" class="config-form">
+            {% csrf_token %}
+            <input type="hidden" name="form_type" value="email" />
+            <div class="form-group">
+                <label for="id_novo_email">Novo email</label>
+                <input type="email" name="novo_email" id="id_novo_email" required placeholder="novo@email.com" />
+                <small class="d-block mt-1">Enviaremos um link de confirmação para o novo email. O email só será alterado após você clicar no link.</small>
+            </div>
+            <button type="submit" class="btn-save"><i class="bi bi-send me-1"></i> Enviar confirmação</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -22,7 +22,8 @@ def login_required_mongo(view_func):
         
         if not user_id or not user_mongo:
             # Se for uma requisição API (JSON), retorna JSON
-            if request.path.startswith('/finance/api/') or 'application/json' in request.META.get('HTTP_ACCEPT', ''):
+            if (request.path.startswith('/api/') or request.path.startswith('/finance/api/') or
+                    'application/json' in request.META.get('HTTP_ACCEPT', '')):
                 return JsonResponse({
                     'error': 'Não autenticado',
                     'message': 'É necessário fazer login para acessar este recurso'

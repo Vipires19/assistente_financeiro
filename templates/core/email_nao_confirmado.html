@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}Confirme seu email - Leozera{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-gray-50">
+    <div class="max-w-md w-full">
+        <div class="bg-white rounded-2xl shadow-md p-8 sm:p-10">
+            <div class="text-center mb-6">
+                <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-amber-100 text-amber-600 mb-4">
+                    <svg class="h-9 w-9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-900 mb-2">Confirme seu email</h1>
+                <p class="text-gray-600 text-sm">
+                    Para acessar o sistema, é necessário confirmar seu email. Verifique sua caixa de entrada e clique no link que enviamos.
+                </p>
+            </div>
+            {% if messages %}
+            <div class="mb-6 space-y-2">
+                {% for message in messages %}
+                <div class="rounded-lg p-3 text-sm
+                    {% if message.tags == 'success' %}bg-green-50 text-green-800 border border-green-200{% endif %}
+                    {% if message.tags == 'warning' %}bg-amber-50 text-amber-800 border border-amber-200{% endif %}
+                    {% if message.tags == 'info' %}bg-blue-50 text-blue-800 border border-blue-200{% endif %}
+                    {% if message.tags == 'error' %}bg-red-50 text-red-800 border border-red-200{% endif %}">
+                    {% if message.tags == 'success' %}✅ {% endif %}
+                    {% if message.tags == 'warning' %}⚠️ {% endif %}
+                    {% if message.tags == 'info' %}ℹ️ {% endif %}
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            <form method="POST" action="{% url 'core:reenviar_confirmacao' %}" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="email" value="{{ email }}">
+                <button type="submit" class="w-full py-3 px-4 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors shadow-sm">
+                    Reenviar email
+                </button>
+            </form>
+            <p class="mt-6 text-center">
+                <a href="{% url 'core:login' %}" class="text-sm text-primary-600 hover:text-primary-700">Voltar ao login</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

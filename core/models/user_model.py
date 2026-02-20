@@ -23,6 +23,9 @@ class UserModel:
       role: String,              // 'user', 'admin' (futuro: mais roles)
       account_id: ObjectId,      // ID da conta/organização (futuro)
       is_active: Boolean,
+      aceitou_termos: Boolean,
+      data_aceite_termos: ISODate,
+      versao_termos: String,     // ex: "1.0"
       created_at: ISODate,
       updated_at: ISODate
     }

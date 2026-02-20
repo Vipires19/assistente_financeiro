@@ -57,6 +57,9 @@
                         class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                         placeholder="••••••••"
                     >
+                    <p class="mt-1 text-right">
+                        <a href="{% url 'core:recuperar_senha' %}" class="text-sm text-primary-600 hover:text-primary-700">Esqueci minha senha</a>
+                    </p>
                 </div>
                 
                 <!-- Submit Button -->
@@ -79,10 +82,6 @@
             </div>
         </div>
         
-        <!-- Footer -->
-        <p class="mt-6 text-center text-xs text-gray-500">
-            © 2024 Dashboard. Todos os direitos reservados.
-        </p>
     </div>
 </div>
 {% endblock %}

@@ -9,7 +9,7 @@ from typing import Optional, Dict, Any
 from core.repositories.base_repository import BaseRepository
 from core.database import get_database
 import bcrypt
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 class UserRepository(BaseRepository):
@@ -81,9 +81,43 @@ class UserRepository(BaseRepository):
             user_data['account_id'] = ObjectId(account_id) if isinstance(account_id, str) else account_id
         
         # GARANTIA FINAL: Verifica se categorias foram populadas antes de salvar
-        # Se por algum motivo o campo categorias estiver vazio ou None, popula novamente
         if 'categorias' not in user_data or not user_data.get('categorias'):
             user_data['categorias'] = CategoriaModel.get_categorias_predefinidas()
+
+        # Assinatura padrão: novo usuário inicia em trial de 7 dias (não sobrescreve se vier em kwargs)
+        if 'assinatura' not in kwargs:
+            now = datetime.utcnow()
+            user_data['assinatura'] = {
+                'plano': 'trial',
+                'status': 'ativa',
+                'inicio': now,
+                'fim': now + timedelta(days=7),
+                'renovacao_automatica': False,
+                'gateway': None,
+                'gateway_subscription_id': None,
+                'ultimo_pagamento_em': None,
+                'proximo_vencimento': None,
+            }
+
+        # Timezone fixo (não sobrescreve se já veio em kwargs)
+        if 'timezone' not in user_data:
+            user_data['timezone'] = 'America/Sao_Paulo'
+
+        # Verificação de email: novo usuário inicia não verificado (não sobrescreve se vier em kwargs)
+        if 'email_verificado' not in user_data:
+            user_data['email_verificado'] = False
+
+        # Campos do modelo de planos SaaS (apenas se não vierem em kwargs)
+        if 'plano' not in kwargs:
+            now = datetime.utcnow()
+            user_data['plano'] = 'trial'
+            user_data['status_assinatura'] = 'ativa'
+            user_data['data_inicio_plano'] = now
+            user_data['data_vencimento_plano'] = now + timedelta(days=7)
+            user_data['trial_usado'] = True
+            user_data['gateway'] = None
+            user_data['subscription_id'] = None
+            user_data['ultimo_pagamento_em'] = None
         
         # Salva o usuário no MongoDB
         result = self.collection.insert_one(user_data)
@@ -93,6 +127,35 @@ class UserRepository(BaseRepository):
         user_data.pop('password_hash', None)
         return user_data
     
+    def _normalize_user_legacy(self, user: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        """
+        Compatibilidade: se usuário antigo sem campo 'plano', define defaults e persiste no DB.
+        Não sobrescreve quem já tem plano definido.
+        Leitura: assinatura primeiro, depois campos antigos. Escrita: dual write (assinatura + antigos).
+        """
+        assinatura = (user or {}).get('assinatura') or {}
+        tem_plano = 'plano' in (user or {}) or assinatura.get('plano') is not None
+        if not user or tem_plano:
+            return user
+        from bson import ObjectId
+        self.collection.update_one(
+            {'_id': user['_id']},
+            {'$set': {
+                'plano': 'sem_plano',
+                'status_assinatura': 'vencida',
+                'assinatura.plano': 'sem_plano',
+                'assinatura.status': 'vencida',
+                'updated_at': datetime.utcnow(),
+            }}
+        )
+        user['plano'] = 'sem_plano'
+        user['status_assinatura'] = 'vencida'
+        if 'assinatura' not in user:
+            user['assinatura'] = {}
+        user['assinatura']['plano'] = 'sem_plano'
+        user['assinatura']['status'] = 'vencida'
+        return user
+
     def find_by_email(self, email: str) -> Optional[Dict[str, Any]]:
         """
         Busca usuário por email.
@@ -103,8 +166,11 @@ class UserRepository(BaseRepository):
         Returns:
             Dict com dados do usuário ou None
         """
-        return self.collection.find_one({'email': email.lower().strip()})
-    
+        user = self.collection.find_one({'email': email.lower().strip()})
+        if user:
+            user = self._normalize_user_legacy(user)
+        return user
+
     def find_by_id(self, user_id: str) -> Optional[Dict[str, Any]]:
         """
         Busca usuário por ID.
@@ -119,9 +185,10 @@ class UserRepository(BaseRepository):
         try:
             user = self.collection.find_one({'_id': ObjectId(user_id)})
             if user:
-                user.pop('password_hash', None)  # Remove senha do retorno
+                user.pop('password_hash', None)
+                user = self._normalize_user_legacy(user)
             return user
-        except:
+        except Exception:
             return None
     
     def verify_password(self, email: str, password: str) -> bool:
@@ -146,7 +213,47 @@ class UserRepository(BaseRepository):
             )
         except:
             return False
-    
+
+    def verify_password_by_id(self, user_id: str, password: str) -> bool:
+        """
+        Verifica se a senha está correta para o usuário pelo ID.
+        Usado na página de configurações (alteração de senha).
+        """
+        from bson import ObjectId
+        try:
+            user = self.collection.find_one(
+                {'_id': ObjectId(user_id)},
+                {'password_hash': 1}
+            )
+            if not user or 'password_hash' not in user:
+                return False
+            return bcrypt.checkpw(
+                password.encode('utf-8'),
+                user['password_hash'].encode('utf-8')
+            )
+        except Exception:
+            return False
+
+    def find_by_token_novo_email(self, token: str) -> Optional[Dict[str, Any]]:
+        """
+        Busca usuário pelo token de confirmação de novo email.
+        Retorna o usuário apenas se token_novo_email_expira_em > agora (UTC).
+        """
+        from datetime import timezone
+        now = datetime.now(timezone.utc)
+        user = self.collection.find_one({'token_novo_email': token})
+        if not user:
+            return None
+        expira = user.get('token_novo_email_expira_em')
+        if not expira:
+            return None
+        if getattr(expira, 'tzinfo', None) is None:
+            expira = expira.replace(tzinfo=timezone.utc)
+        if expira < now:
+            return None
+        user.pop('password_hash', None)
+        return user
+
     def update(self, user_id: str, **kwargs) -> bool:
         """
         Atualiza dados do usuário.
@@ -166,4 +273,24 @@ class UserRepository(BaseRepository):
             {'$set': kwargs}
         )
         return result.modified_count > 0
+
+    def find_by_token_confirmacao(self, token: str) -> Optional[Dict[str, Any]]:
+        """
+        Busca usuário pelo token de confirmação (reenvio).
+        Retorna o usuário apenas se token_expira_em > agora (UTC).
+        """
+        from datetime import timezone
+        now = datetime.now(timezone.utc)
+        user = self.collection.find_one({'token_confirmacao': token})
+        if not user:
+            return None
+        expira = user.get('token_expira_em')
+        if not expira:
+            return None
+        if getattr(expira, 'tzinfo', None) is None:
+            expira = expira.replace(tzinfo=timezone.utc)
+        if expira < now:
+            return None
+        user.pop('password_hash', None)
+        return user
 

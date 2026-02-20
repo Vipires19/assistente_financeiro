@@ -1,181 +1,544 @@
-{% extends 'base.html' %}
+{% extends 'base_dashboard.html' %}
 {% load static %}
 
 {% block title %}Agenda{% endblock %}
 
 {% block extra_head %}
-<!-- FullCalendar CSS -->
-<link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
 <style>
-    .fc {
-        font-family: inherit;
+    /* ========== Agenda — Visual moderno + tema dark ========== */
+    .agenda-page {
+        --agenda-bg: #f1f5f9;
+        --agenda-card: #ffffff;
+        --agenda-border: #e2e8f0;
+        --agenda-text: #0f172a;
+        --agenda-muted: #64748b;
+        --agenda-neon-green: #10b981;
+        --agenda-neon-blue: #0ea5e9;
+        --agenda-dark: #0f172a;
+        --agenda-glow-green: rgba(16, 185, 129, 0.25);
+        --agenda-glow-blue: rgba(14, 165, 233, 0.25);
+        --agenda-radius: 0.625rem;
+        --agenda-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        --agenda-shadow-lg: 0 10px 40px -10px rgba(0,0,0,0.1);
     }
-    .fc-event {
+    body.dark-mode .agenda-page {
+        --agenda-bg: #0f172a;
+        --agenda-card: #1e293b;
+        --agenda-border: #334155;
+        --agenda-text: #e2e8f0;
+        --agenda-muted: #94a3b8;
+        --agenda-glow-green: rgba(16, 185, 129, 0.3);
+        --agenda-glow-blue: rgba(14, 165, 233, 0.3);
+        --agenda-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        --agenda-shadow-lg: 0 10px 40px -10px rgba(0,0,0,0.4);
+    }
+
+    .agenda-page {
+        min-height: 100vh;
+        background: var(--agenda-bg);
+        color: var(--agenda-text);
+        transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    /* Toolbar — botões modernos */
+    .agenda-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .agenda-nav {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .agenda-nav-btn {
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: var(--agenda-radius);
+        border: 1px solid var(--agenda-border);
+        background: var(--agenda-card);
+        color: var(--agenda-text);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         cursor: pointer;
-        border-radius: 4px;
+        transition: all 0.2s ease;
+        box-shadow: var(--agenda-shadow);
     }
-    .fc-event.pendente { background-color: #ffc107; border-color: #ffc107; }
-    .fc-event.confirmado { background-color: #17a2b8; border-color: #17a2b8; }
-    .fc-event.concluido { background-color: #28a745; border-color: #28a745; }
-    .fc-event.cancelado { background-color: #dc3545; border-color: #dc3545; }
+    .agenda-nav-btn:hover {
+        border-color: var(--agenda-neon-blue);
+        color: var(--agenda-neon-blue);
+        box-shadow: 0 0 0 3px var(--agenda-glow-blue);
+    }
+    body.dark-mode .agenda-nav-btn {
+        box-shadow: var(--agenda-shadow);
+    }
+    .agenda-title-date {
+        font-weight: 600;
+        font-size: 1.125rem;
+        min-width: 180px;
+        text-align: center;
+        color: var(--agenda-text);
+    }
+    .agenda-view-group {
+        display: flex;
+        border-radius: var(--agenda-radius);
+        overflow: hidden;
+        border: 1px solid var(--agenda-border);
+        background: var(--agenda-card);
+        box-shadow: var(--agenda-shadow);
+    }
+    .agenda-view-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border: none;
+        background: transparent;
+        color: var(--agenda-muted);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .agenda-view-btn:hover { color: var(--agenda-neon-blue); }
+    .agenda-view-btn.active {
+        background: var(--agenda-neon-blue);
+        color: #fff;
+    }
+    body.dark-mode .agenda-view-btn.active { color: #fff; }
+    .agenda-add-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border-radius: var(--agenda-radius);
+        border: none;
+        background: var(--agenda-neon-green);
+        color: #fff;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: var(--agenda-shadow);
+    }
+    .agenda-add-btn:hover {
+        box-shadow: 0 0 0 3px var(--agenda-glow-green);
+        transform: translateY(-1px);
+    }
+
+    /* Wrapper do calendário — card moderno */
+    .agenda-calendar-wrap {
+        background: var(--agenda-card);
+        border-radius: 0.75rem;
+        border: 1px solid var(--agenda-border);
+        box-shadow: var(--agenda-shadow-lg);
+        overflow: hidden;
+        transition: all 0.3s ease;
+        width: 100%;
+    }
+    body.dark-mode .agenda-calendar-wrap {
+        box-shadow: var(--agenda-shadow-lg);
+    }
+
+    /* FullCalendar — customização apenas CSS (estrutura intacta) */
+    .agenda-fc-modern .fc {
+        font-family: inherit;
+        --fc-border-color: var(--agenda-border);
+        --fc-button-bg-color: var(--agenda-card);
+        --fc-button-border-color: var(--agenda-border);
+        --fc-today-bg-color: transparent;
+        --fc-page-bg-color: var(--agenda-card);
+        --fc-neutral-bg-color: var(--agenda-bg);
+    }
+    .agenda-fc-modern .fc .fc-toolbar-title { font-size: 1rem; color: var(--agenda-text); }
+    .agenda-fc-modern .fc-theme-standard .fc-scrollgrid {
+        border-color: var(--agenda-border);
+    }
+    .agenda-fc-modern .fc-theme-standard td,
+    .agenda-fc-modern .fc-theme-standard th { border-color: var(--agenda-border); }
+    .agenda-fc-modern .fc .fc-col-header-cell {
+        background: var(--agenda-bg);
+        color: var(--agenda-muted);
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.5rem 0.25rem;
+        border-color: var(--agenda-border);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+    .agenda-fc-modern .fc .fc-timegrid-slot {
+        height: 3rem;
+        border-color: var(--agenda-border);
+    }
+    .agenda-fc-modern .fc .fc-timegrid-slot-label {
+        font-size: 0.75rem;
+        color: var(--agenda-muted);
+        border-color: var(--agenda-border);
+    }
+    .agenda-fc-modern .fc .fc-timegrid-axis {
+        border-color: var(--agenda-border);
+        background: var(--agenda-bg);
+    }
+    .agenda-fc-modern .fc .fc-scrollgrid-section-body td { background: var(--agenda-card); }
+    .agenda-fc-modern .fc .fc-daygrid-day {
+        border-color: var(--agenda-border);
+        background: var(--agenda-card);
+    }
+    .agenda-fc-modern .fc .fc-daygrid-day.fc-day-today {
+        background: rgba(14, 165, 233, 0.06);
+    }
+    body.dark-mode .agenda-fc-modern .fc .fc-daygrid-day.fc-day-today {
+        background: rgba(14, 165, 233, 0.12);
+    }
+    .agenda-fc-modern .fc .fc-daygrid-day-number {
+        color: var(--agenda-muted);
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    .agenda-fc-modern .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+        background: var(--agenda-neon-blue);
+        color: #fff;
+        border-radius: 50%;
+        width: 1.75rem;
+        height: 1.75rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .agenda-fc-modern .fc .fc-event {
+        border-radius: 0.5rem;
+        border: none;
+        padding: 2px 6px;
+        font-size: 0.8125rem;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .agenda-fc-modern .fc .fc-event:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+    .agenda-fc-modern .fc .fc-event.pendente { background: #f59e0b; color: #0f172a; }
+    .agenda-fc-modern .fc .fc-event.confirmado { background: var(--agenda-neon-blue); color: #fff; }
+    .agenda-fc-modern .fc .fc-event.concluido { background: var(--agenda-neon-green); color: #fff; }
+    .agenda-fc-modern .fc .fc-event.cancelado { background: #64748b; color: #fff; }
+    body.dark-mode .agenda-fc-modern .fc .fc-event.pendente { background: #d97706; color: #fff; }
+    .agenda-fc-modern .fc-event-modern { padding: 2px 6px; }
+    .agenda-fc-modern .fc-event-modern .fc-event-title { font-weight: 600; font-size: 0.8125rem; }
+    .agenda-fc-modern .fc-event-modern .fc-event-time { font-size: 0.75rem; opacity: 0.95; }
+    .agenda-fc-modern .fc .fc-daygrid-event { border-radius: 0.375rem; }
+    .agenda-fc-modern .fc .fc-timegrid .fc-timegrid-body { position: relative; }
+    /*.agenda-fc-modern .fc-timegrid .fc-timegrid-axis::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: linear-gradient(180deg, var(--agenda-neon-blue), var(--agenda-neon-green));
+        opacity: 0.4;
+        transform: translateX(-50%);
+    }*/
+    .agenda-fc-modern .fc .fc-timegrid-event {
+        border-radius: 0.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    body.dark-mode .agenda-fc-modern .fc .fc-timegrid-event {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    /* Seleção de intervalo (selectable) */
+    .agenda-fc-modern .fc-highlight {
+        background: rgba(14, 165, 233, 0.15) !important;
+    }
+    body.dark-mode .agenda-fc-modern .fc-highlight {
+        background: rgba(14, 165, 233, 0.25) !important;
+    }
+
+    #agenda-calendar {
+        min-height: 400px;
+        width: 100%;
+        display: block;
+        padding: 1rem;
+    }
+    .hidden { display: none !important; }
+    @media (max-width: 640px) {
+        #agenda-calendar { min-height: 360px; padding: 0.5rem; }
+        .agenda-toolbar { flex-direction: column; align-items: stretch; }
+        .agenda-nav { justify-content: center; }
+        .agenda-view-group { justify-content: center; }
+    }
+
+    /* Modal — moderno, paleta agenda + dark */
+    .agenda-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.5);
+        backdrop-filter: blur(8px);
+        z-index: 1050;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        overflow-y: auto;
+    }
+    body.dark-mode .agenda-modal-overlay {
+        background: rgba(0, 0, 0, 0.6);
+    }
+    .agenda-modal-overlay.show {
+        display: flex;
+        pointer-events: auto;
+    }
+    .agenda-modal {
+        width: 100%;
+        max-width: 28rem;
+        background: linear-gradient(
+            145deg,
+            rgba(20, 30, 48, 0.98),
+            rgba(15, 23, 42, 0.98)
+        );
+        color: #e2e8f0;
+        border: 1px solid rgba(14, 165, 233, 0.4);
+        box-shadow:
+            0 30px 60px rgba(0, 0, 0, 0.55),
+            0 0 0 1px rgba(14, 165, 233, 0.2),
+            0 0 25px rgba(14, 165, 233, 0.15);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-radius: 16px;
+        padding: 1.5rem;
+        animation: agendaModalIn 0.3s ease;
+    }
+    .agenda-modal .agenda-modal-title,
+    .agenda-modal .agenda-form label { color: #e2e8f0; }
+    .agenda-modal .agenda-form input,
+    .agenda-modal .agenda-form textarea,
+    .agenda-modal .agenda-form select {
+        background: rgba(30, 41, 59, 0.8);
+        border-color: rgba(148, 163, 184, 0.3);
+        color: #f1f5f9;
+    }
+    .agenda-modal .agenda-form input::placeholder,
+    .agenda-modal .agenda-form textarea::placeholder { color: #94a3b8; }
+    body.dark-mode .agenda-modal {
+        border-color: rgba(14, 165, 233, 0.5);
+        box-shadow:
+            0 30px 60px rgba(0, 0, 0, 0.6),
+            0 0 0 1px rgba(14, 165, 233, 0.25),
+            0 0 28px rgba(14, 165, 233, 0.18);
+    }
+    @keyframes agendaModalIn {
+        from { opacity: 0; transform: scale(0.96); }
+        to { opacity: 1; transform: scale(1); }
+    }
+    .agenda-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.25rem;
+    }
+    .agenda-modal-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--agenda-text);
+    }
+    .agenda-modal-close {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 0.5rem;
+        border: none;
+        background: transparent;
+        color: var(--agenda-muted);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+    .agenda-modal-close:hover {
+        background: var(--agenda-border);
+        color: var(--agenda-text);
+    }
+    .agenda-form label {
+        display: block;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: var(--agenda-muted);
+        margin-bottom: 0.375rem;
+    }
+    .agenda-form input,
+    .agenda-form textarea,
+    .agenda-form select {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.5rem;
+        border: 1px solid var(--agenda-border);
+        background: var(--agenda-bg);
+        color: var(--agenda-text);
+        font-size: 0.875rem;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .agenda-form input:focus,
+    .agenda-form textarea:focus,
+    .agenda-form select:focus {
+        outline: none;
+        border-color: var(--agenda-neon-blue);
+        box-shadow: 0 0 0 3px var(--agenda-glow-blue);
+    }
+    .agenda-form .form-group { margin-bottom: 1rem; }
+    .agenda-form .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+    .agenda-form-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: flex-end;
+        margin-top: 1.25rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--agenda-border);
+    }
+    .agenda-form-actions .btn-cancel {
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        border: 1px solid var(--agenda-border);
+        background: transparent;
+        color: var(--agenda-muted);
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .agenda-form-actions .btn-cancel:hover {
+        background: var(--agenda-border);
+        color: var(--agenda-text);
+    }
+    .agenda-form-actions .btn-save {
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        border: none;
+        background: var(--agenda-neon-green);
+        color: #fff;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .agenda-form-actions .btn-save:hover {
+        box-shadow: 0 0 0 3px var(--agenda-glow-green);
+        transform: translateY(-1px);
+    }
+    .agenda-form-actions .btn-delete {
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        border: none;
+        background: #ef4444;
+        color: #fff;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .agenda-form-actions .btn-delete:hover { filter: brightness(1.1); }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50">
-    <!-- Header -->
-    <header class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-10">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center space-x-4">
-                    <a href="{% url 'finance:dashboard' %}" class="text-gray-600 hover:text-gray-900">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                        </svg>
-                    </a>
-                    <h1 class="text-xl font-semibold text-gray-900">Agenda</h1>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <span class="text-sm text-gray-600 hidden sm:inline">{{ user.email }}</span>
-                    <a href="{% url 'core:logout' %}" class="text-sm text-gray-600 hover:text-gray-900">
-                        Sair
-                    </a>
-                </div>
+<div class="agenda-page">
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+        <!-- Toolbar: nav + view switcher + novo -->
+        <div class="agenda-toolbar">
+            <div class="agenda-nav">
+                <button type="button" class="agenda-nav-btn" id="agendaPrev" aria-label="Anterior">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+                <button type="button" class="agenda-nav-btn" id="agendaToday" aria-label="Hoje">
+                    <i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i>
+                </button>
+                <button type="button" class="agenda-nav-btn" id="agendaNext" aria-label="Próximo">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+                <span class="agenda-title-date" id="agendaTitleDate">—</span>
             </div>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <!-- Filtros e Controles -->
-        <div class="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div class="flex items-center space-x-4">
-                <div class="flex items-center space-x-2">
-                    <label for="filtro-view" class="text-sm font-medium text-gray-700">Visualização:</label>
-                    <select id="filtro-view" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <option value="dayGridMonth">Mês</option>
-                        <option value="timeGridWeek">Semana</option>
-                        <option value="timeGridDay">Dia</option>
-                    </select>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <div class="agenda-view-group">
+                    <button type="button" class="agenda-view-btn" data-view="timeGridDay">Dia</button>
+                    <button type="button" class="agenda-view-btn" data-view="timeGridWeek">Semana</button>
+                    <button type="button" class="agenda-view-btn active" data-view="dayGridMonth">Mês</button>
                 </div>
-            </div>
-            <div class="flex items-center space-x-2">
-                <button id="addCompromissoBtn" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
-                    ➕ Novo Compromisso
+                <button type="button" class="agenda-add-btn" id="addCompromissoBtn">
+                    <i class="bi bi-plus-lg me-1"></i> Novo
                 </button>
             </div>
         </div>
 
-        <!-- Calendário -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <div id="calendar"></div>
+        <!-- Calendário FullCalendar — container único -->
+        <div class="agenda-calendar-wrap agenda-fc-modern">
+            <div id="agenda-calendar"></div>
         </div>
     </main>
 </div>
 
-<!-- Modal para Criar/Editar Compromisso -->
-<div id="compromissoModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-        <div class="mt-3">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-medium text-gray-900" id="modalTitle">Novo Compromisso</h3>
-                <button id="closeModal" class="text-gray-400 hover:text-gray-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-            </div>
-            
-            <form id="compromissoForm">
-                <input type="hidden" id="compromissoId" />
-                
-                <div class="mb-4">
-                    <label for="titulo" class="block text-sm font-medium text-gray-700 mb-2">
-                        Título <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" id="titulo" name="titulo" required
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                
-                <div class="mb-4">
-                    <label for="descricao" class="block text-sm font-medium text-gray-700 mb-2">
-                        Descrição
-                    </label>
-                    <textarea id="descricao" name="descricao" rows="3"
-                              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
-                </div>
-                
-                <div class="mb-4">
-                    <label for="data" class="block text-sm font-medium text-gray-700 mb-2">
-                        Data <span class="text-red-500">*</span>
-                    </label>
-                    <input type="date" id="data" name="data" required
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label for="hora" class="block text-sm font-medium text-gray-700 mb-2">
-                            Horário de Início <span class="text-red-500">*</span>
-                        </label>
-                        <input type="time" id="hora" name="hora" required
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    
-                    <div>
-                        <label for="hora_fim" class="block text-sm font-medium text-gray-700 mb-2">
-                            Horário de Término <span class="text-red-500">*</span>
-                        </label>
-                        <input type="time" id="hora_fim" name="hora_fim" required
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                </div>
-                
-                <div class="mb-4">
-                    <label for="tipo" class="block text-sm font-medium text-gray-700 mb-2">
-                        Tipo
-                    </label>
-                    <select id="tipo" name="tipo"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="">Selecione...</option>
-                        <option value="Reunião">Reunião</option>
-                        <option value="Serviço">Serviço</option>
-                        <option value="Consulta">Consulta</option>
-                        <option value="Compromisso">Compromisso</option>
-                        <option value="Outros">Outros</option>
-                    </select>
-                </div>
-                
-                <div class="mb-4">
-                    <label for="status" class="block text-sm font-medium text-gray-700 mb-2">
-                        Status
-                    </label>
-                    <select id="status" name="status"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="pendente">Pendente</option>
-                        <option value="confirmado">Confirmado</option>
-                        <option value="concluido">Concluído</option>
-                        <option value="cancelado">Cancelado</option>
-                    </select>
-                </div>
-                
-                <div class="flex justify-end space-x-3">
-                    <button type="button" id="cancelBtn" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
-                        Cancelar
-                    </button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                        Salvar
-                    </button>
-                    <button type="button" id="deleteBtn" class="hidden px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                        Excluir
-                    </button>
-                </div>
-            </form>
+<!-- Modal Criar/Editar (sem dropdown Bootstrap) -->
+<div class="agenda-modal-overlay" id="compromissoModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="agenda-modal">
+        <div class="agenda-modal-header">
+            <h3 class="agenda-modal-title" id="modalTitle">Novo Compromisso</h3>
+            <button type="button" class="agenda-modal-close" id="closeModal" aria-label="Fechar">
+                <i class="bi bi-x-lg"></i>
+            </button>
         </div>
+        <form id="compromissoForm" class="agenda-form">
+            <input type="hidden" id="compromissoId" />
+            <div class="form-group">
+                <label for="titulo">Título <span class="text-danger">*</span></label>
+                <input type="text" id="titulo" name="titulo" required placeholder="Ex: Reunião com cliente" />
+            </div>
+            <div class="form-group">
+                <label for="descricao">Descrição</label>
+                <textarea id="descricao" name="descricao" rows="2" placeholder="Opcional"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="data">Data <span class="text-danger">*</span></label>
+                <input type="date" id="data" name="data" required />
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="hora">Início <span class="text-danger">*</span></label>
+                    <input type="time" id="hora" name="hora" required />
+                </div>
+                <div class="form-group">
+                    <label for="hora_fim">Término <span class="text-danger">*</span></label>
+                    <input type="time" id="hora_fim" name="hora_fim" required />
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="tipo">Tipo</label>
+                <select id="tipo" name="tipo">
+                    <option value="">Selecione...</option>
+                    <option value="Reunião">Reunião</option>
+                    <option value="Serviço">Serviço</option>
+                    <option value="Consulta">Consulta</option>
+                    <option value="Compromisso">Compromisso</option>
+                    <option value="Outros">Outros</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="status">Status</label>
+                <select id="status" name="status">
+                    <option value="pendente">Pendente</option>
+                    <option value="confirmado">Confirmado</option>
+                    <option value="concluido">Concluído</option>
+                    <option value="cancelado">Cancelado</option>
+                </select>
+            </div>
+            <div class="agenda-form-actions">
+                <button type="button" class="btn-cancel" id="cancelBtn">Cancelar</button>
+                <button type="button" class="btn-delete hidden" id="deleteBtn">Excluir</button>
+                <button type="submit" class="btn-save">Salvar</button>
+            </div>
+        </form>
     </div>
 </div>
 
-<!-- FullCalendar JS -->
+{% endblock %}
+
+{% block extra_js %}
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/locales/pt-br.global.min.js'></script>
 <script src="{% static 'finance/js/agenda.js' %}"></script>

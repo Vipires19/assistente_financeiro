@@ -4,6 +4,7 @@ import uuid
 import re
 import requests
 from datetime import datetime, timedelta, date
+import pytz
 from pymongo import MongoClient
 from bson import ObjectId
 from dateutil.parser import parse
@@ -15,7 +16,7 @@ from langchain_community.document_loaders import Docx2txtLoader
 from langgraph.checkpoint.mongodb import MongoDBSaver
 from langchain_openai import OpenAIEmbeddings
 from langchain_mongodb.vectorstores import MongoDBAtlasVectorSearch
-from langchain.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.tools import tool
 from typing_extensions import TypedDict
 #from services.waha import Waha
@@ -29,6 +30,11 @@ from langchain_core.messages import AIMessage, SystemMessage, HumanMessage
 from langchain_core.runnables import RunnableLambda
 import unicodedata, re, logging
 from typing import List, Dict
+
+try:
+    from repositories.utils_datas import resolver_periodo_relativo, resolver_data_relativa
+except ImportError:
+    from utils_datas import resolver_periodo_relativo, resolver_data_relativa
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +59,7 @@ coll_clientes = db.users
 coll_transacoes = db.transactions
 coll_compromissos = db.compromissos  # Coleção de compromissos/agenda
 
-waha = Waha()
+#waha = Waha()
 
 def normalizar(texto: str) -> str:
     """Normaliza texto removendo acentos e convertendo para minúsculas"""
@@ -121,146 +127,296 @@ class State(TypedDict):
 
 def check_user(state: dict, config: dict) -> dict:
     """
-    Verifica se o usuário já fez contato com a barbearia com base no telefone.
-    Adiciona os dados como 'user_info' no estado do LangGraph.
-    Usa API HTTP ao invés de acessar diretamente o MongoDB.
-    
-    Se o usuário não for encontrado, envia um link de cadastro em vez de criar registro temporário.
+    Verifica se o usuário está autenticado.
+    Regra CRÍTICA:
+    - Se status == "ativo", NÃO reprocessa telefone, email ou thread_id.
     """
+
     try:
+        # ======================================================
+        # 🔒 BLOQUEIO ABSOLUTO: usuário já autenticado
+        # ======================================================
+        if state.get("user_info", {}).get("status") == "ativo":
+            print("[CHECK_USER] 🔒 Usuário já ativo — verificação ignorada")
+            return state
+
+        # ======================================================
+        # A PARTIR DAQUI: somente usuários NÃO autenticados
+        # ======================================================
+
         thread_id = config["metadata"]["thread_id"]
-        sem_sufixo = thread_id.replace("@c.us", "")
-        telefone = sem_sufixo[2:]  # remove o 55
 
-        # Buscar cliente via API
-        try:
-            response = fazer_requisicao_api(f'/api/v1/cliente/?telefone={telefone}', method='GET')
-            
-            if response.get('success') and response.get('cliente'):
-                cliente = response['cliente']
-                user_info = {
-                    "nome": cliente.get('nome'),
-                    "telefone": telefone,
-                    "email": cliente.get('email'),
-                    "data_criacao": cliente.get('data_criacao', datetime.now().isoformat()),
-                    "ultima_interacao": datetime.now().isoformat(),
-                    "status": "ativo" if cliente.get('nome') else "aguardando_nome"
-                }
-                print(f"[CHECK_USER] Cliente existente encontrado: {telefone}")
-            else:
-                # Cliente não existe - NÃO criar registro temporário
-                # Em vez disso, preparar mensagem de cadastro
-                user_info = {
-                    "nome": None,
-                    "telefone": telefone,
-                    "email": None,
-                    "data_criacao": None,
-                    "ultima_interacao": datetime.now().isoformat(),
-                    "status": "precisa_cadastro"
-                }
-                
-                # Construir link de cadastro com o telefone
-                link_cadastro = f"{DJANGO_BASE_URL.rstrip('/')}/register/?telefone={telefone}"
-                
-                # Adicionar mensagem ao state informando sobre a necessidade de cadastro
-                mensagem_cadastro = (
-                    f"Olá! 😊\n\n"
-                    f"Parece que você ainda não está cadastrado em nosso sistema. "
-                    f"Para usar nossos serviços, é necessário fazer o cadastro primeiro.\n\n"
-                    f"Por favor, acesse o link abaixo para se registrar:\n"
-                    f"{link_cadastro}\n\n"
-                    f"Após o cadastro, você poderá usar todos os serviços do assistente! 🎉"
-                )
-                
-                # Adicionar mensagem do assistente ao state
-                if "messages" not in state:
-                    state["messages"] = []
-                
-                # Adiciona mensagem do assistente informando sobre cadastro
-                state["messages"].append(AIMessage(content=mensagem_cadastro))
-                
-                print(f"[CHECK_USER] Cliente não encontrado: {telefone} - Link de cadastro enviado: {link_cadastro}")
-        except Exception as e:
-            print(f"[CHECK_USER] Erro ao buscar cliente via API: {e}")
-            # Em caso de erro na API, também enviar link de cadastro
-            user_info = {
+        # ------------------------------------------------------
+        # CASO 1 — Thread ID NÃO contém telefone (@lid, etc)
+        # ------------------------------------------------------
+        if "@c.us" not in thread_id:
+            state["user_info"] = {
                 "nome": None,
-                "telefone": telefone,
+                "telefone": None,
                 "email": None,
-                "data_criacao": None,
+                "user_id": None,
                 "ultima_interacao": datetime.now().isoformat(),
-                "status": "precisa_cadastro"
+                "status": "precisa_email"
             }
-            
-            # Construir link de cadastro com o telefone
-            link_cadastro = f"{DJANGO_BASE_URL.rstrip('/')}/register/?telefone={telefone}"
-            
-            # Adicionar mensagem ao state informando sobre a necessidade de cadastro
-            mensagem_cadastro = (
-                f"Olá! 😊\n\n"
-                f"Parece que você ainda não está cadastrado em nosso sistema. "
-                f"Para usar nossos serviços, é necessário fazer o cadastro primeiro.\n\n"
-                f"Por favor, acesse o link abaixo para se registrar:\n"
-                f"{link_cadastro}\n\n"
-                f"Após o cadastro, você poderá usar todos os serviços do assistente! 🎉"
-            )
-            
-            # Adicionar mensagem do assistente ao state
-            if "messages" not in state:
-                state["messages"] = []
-            
-            state["messages"].append(AIMessage(content=mensagem_cadastro))
-            
-            print(f"[CHECK_USER] Erro ao buscar cliente - Link de cadastro enviado: {link_cadastro}")
 
-        # Adiciona user_info ao state
-        state["user_info"] = user_info
-        
-        print(f"[CHECK_USER] User info adicionado ao state: {user_info}")
+            print(f"[CHECK_USER] ⚠️ Thread ID sem telefone ({thread_id}) → precisa_email")
+            return state
+
+        # ------------------------------------------------------
+        # CASO 2 — Thread ID contém telefone (@c.us)
+        # ------------------------------------------------------
+        sem_sufixo = thread_id.replace("@c.us", "")
+        telefone = sem_sufixo[2:] if len(sem_sufixo) > 2 else None  # remove 55
+
+        if not telefone or len(telefone) < 10:
+            state["user_info"] = {
+                "nome": None,
+                "telefone": None,
+                "email": None,
+                "user_id": None,
+                "ultima_interacao": datetime.now().isoformat(),
+                "status": "precisa_email"
+            }
+
+            print("[CHECK_USER] ⚠️ Telefone inválido → precisa_email")
+            return state
+
+        # ------------------------------------------------------
+        # BUSCA NO MONGO POR TELEFONE
+        # ------------------------------------------------------
+        cliente = coll_clientes.find_one({"telefone": telefone})
+
+        if cliente:
+            assinatura = cliente.get("assinatura") or {}
+            state["user_info"] = {
+                "nome": cliente.get("nome"),
+                "telefone": telefone,
+                "email": cliente.get("email"),
+                "user_id": str(cliente.get("_id")),
+                "ultima_interacao": datetime.now().isoformat(),
+                "status": "ativo",
+                "plano": assinatura.get("plano") or cliente.get("plano"),
+                "status_assinatura": assinatura.get("status") or cliente.get("status_assinatura"),
+                "data_vencimento_plano": assinatura.get("proximo_vencimento") or assinatura.get("fim") or cliente.get("data_vencimento_plano"),
+            }
+
+            print(f"[CHECK_USER] ✅ Usuário autenticado por telefone: {telefone}")
+            return state
+
+        # ------------------------------------------------------
+        # USUÁRIO NÃO ENCONTRADO → CADASTRO
+        # ------------------------------------------------------
+        link_cadastro = "https://leozera.camppoia.com.br/login/"
+
+        mensagem = (
+            "Olá! 😊\n\n"
+            "Você ainda não está cadastrado em nosso sistema.\n\n"
+            "Para usar o assistente, faça seu cadastro no link abaixo:\n"
+            f"{link_cadastro}\n\n"
+            "Depois disso, é só voltar aqui! 🚀"
+        )
+
+        state.setdefault("messages", []).append(AIMessage(content=mensagem))
+
+        state["user_info"] = {
+            "nome": None,
+            "telefone": telefone,
+            "email": None,
+            "user_id": None,
+            "ultima_interacao": datetime.now().isoformat(),
+            "status": "precisa_cadastro"
+        }
+
+        print(f"[CHECK_USER] ❌ Usuário não encontrado ({telefone}) → cadastro solicitado")
         return state
 
     except Exception as e:
-        print(f"[CHECK_USER] Erro: {e}")
-        # Fallback em caso de erro geral
-        telefone = "erro"
-        try:
-            thread_id = config["metadata"]["thread_id"]
-            sem_sufixo = thread_id.replace("@c.us", "")
-            telefone = sem_sufixo[2:] if len(sem_sufixo) > 2 else "erro"
-        except:
-            pass
-        
-        user_info = {
-            "nome": None, 
-            "telefone": telefone,
-            "data_criacao": None,
+        print(f"[CHECK_USER] ❌ Erro inesperado: {e}")
+
+        state["user_info"] = {
+            "nome": None,
+            "telefone": None,
+            "email": None,
+            "user_id": None,
             "ultima_interacao": datetime.now().isoformat(),
-            "status": "erro"
+            "status": "precisa_cadastro"
         }
-        
-        # Mesmo em caso de erro, tentar enviar link de cadastro se tiver telefone válido
-        if telefone != "erro":
-            link_cadastro = f"{DJANGO_BASE_URL.rstrip('/')}/register/?telefone={telefone}"
-            mensagem_cadastro = (
-                f"Olá! 😊\n\n"
-                f"Parece que você ainda não está cadastrado em nosso sistema. "
-                f"Para usar nossos serviços, é necessário fazer o cadastro primeiro.\n\n"
-                f"Por favor, acesse o link abaixo para se registrar:\n"
-                f"{link_cadastro}\n\n"
-                f"Após o cadastro, você poderá usar todos os serviços do assistente! 🎉"
-            )
-            
-            if "messages" not in state:
-                state["messages"] = []
-            state["messages"].append(AIMessage(content=mensagem_cadastro))
-        
-        state["user_info"] = user_info
+
         return state
+
+
+def ask_email(state: dict, config: dict = None) -> dict:
+    mensagem = (
+        "Para continuar 😊\n\n"
+        "Informe por favor seu *email* cadastrado:"
+    )
+    state.setdefault("messages", []).append(AIMessage(content=mensagem))
+    print("[ASK_EMAIL] Solicitação de email enviada")
+    return state
+
+
+def check_user_by_email(state: dict, config: dict = None) -> dict:
+    try:
+        messages = state.get("messages", [])
+
+        # Última mensagem do usuário
+        user_msg = next(
+            (m.content.strip().lower() for m in reversed(messages) if isinstance(m, HumanMessage)),
+            None
+        )
+
+        if not user_msg:
+            return state
+
+        if "@" not in user_msg or "." not in user_msg:
+            state["messages"].append(
+                AIMessage(content="Esse email não parece válido 😕\nPode tentar novamente?")
+            )
+            return state
+
+        cliente = coll_clientes.find_one({"email": user_msg})
+
+        if cliente:
+            assinatura = cliente.get("assinatura") or {}
+            state["user_info"] = {
+                "nome": cliente.get("nome"),
+                "telefone": cliente.get("telefone"),
+                "email": user_msg,
+                "user_id": str(cliente.get("_id")),
+                "ultima_interacao": datetime.now().isoformat(),
+                "status": "ativo",
+                "plano": assinatura.get("plano") or cliente.get("plano"),
+                "status_assinatura": assinatura.get("status") or cliente.get("status_assinatura"),
+                "data_vencimento_plano": assinatura.get("proximo_vencimento") or assinatura.get("fim") or cliente.get("data_vencimento_plano"),
+            }
+            print(f"[CHECK_USER_BY_EMAIL] ✅ Usuário ativo por email: {user_msg}")
+            return state
+
+        # ❌ Email não encontrado
+        state["user_info"] = {
+            "nome": None,
+            "telefone": None,
+            "email": user_msg,
+            "user_id": None,
+            "ultima_interacao": datetime.now().isoformat(),
+            "status": "precisa_cadastro"
+        }
+
+        state["messages"].append(
+            AIMessage(
+                content=(
+                    f"O email *{user_msg}* não está cadastrado.\n\n"
+                    "Finalize seu cadastro aqui:\n"
+                    "https://leozera.camppoia.com.br/login/"
+                )
+            )
+        )
+        print(f"[CHECK_USER_BY_EMAIL] ❌ Email não cadastrado: {user_msg}")
+        return state
+
+    except Exception as e:
+        print(f"[CHECK_USER_BY_EMAIL] Erro: {e}")
+        return state
+
+
+def check_plano(state: dict, config: dict = None) -> dict:
+    """
+    Verifica se a assinatura do usuário está ativa (plano não expirado).
+    Só é chamado quando user_info.status == 'ativo'.
+    Se assinatura.fim < agora: atualiza Mongo (sem_plano, inativa) e retorna sem_plano.
+    Caso contrário retorna plano_ativo.
+    """
+    try:
+        user_info = state.get("user_info", {})
+        user_id = user_info.get("user_id")
+        if not user_id:
+            user_info["plano_result"] = "plano_ativo"
+            return state
+
+        user = coll_clientes.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            user_info["plano_result"] = "plano_ativo"
+            return state
+
+        assinatura = user.get("assinatura") or {}
+        fim = assinatura.get("proximo_vencimento") or assinatura.get("fim") or user.get("data_vencimento_plano")
+        plano_atual = assinatura.get("plano") or user.get("plano")
+        user_info["plano"] = plano_atual
+        user_info["status_assinatura"] = assinatura.get("status") or user.get("status_assinatura")
+        user_info["data_vencimento_plano"] = fim
+        if fim is None:
+            user_info["plano_result"] = "plano_ativo"
+            return state
+
+        now = datetime.utcnow()
+        if hasattr(fim, "tzinfo") and fim.tzinfo is not None:
+            from datetime import timezone
+            fim = fim.astimezone(timezone.utc).replace(tzinfo=None)
+
+        if fim < now:
+            coll_clientes.update_one(
+                {"_id": ObjectId(user_id)},
+                {
+                    "$set": {
+                        "plano": "sem_plano",
+                        "assinatura.plano": "sem_plano",
+                        "assinatura.status": "inativa",
+                        "updated_at": datetime.utcnow(),
+                    }
+                },
+            )
+            user_info["plano"] = "sem_plano"
+            user_info["plano_result"] = "sem_plano"
+            print(f"[CHECK_PLANO] Plano expirado para user_id={user_id}")
+        else:
+            user_info["plano_result"] = "plano_ativo"
+
+        return state
+    except Exception as e:
+        print(f"[CHECK_PLANO] Erro: {e}")
+        state.setdefault("user_info", {})["plano_result"] = "plano_ativo"
+        return state
+
+
+def bloqueio_plano(state: dict, config: dict = None) -> dict:
+    """
+    Nó de bloqueio: plano expirado. Adiciona mensagem amigável e encerra (não chama tools).
+    """
+    mensagem = (
+        "Seu período de teste expirou. 😔\n\n"
+        "Para continuar usando o Leozera com acesso completo (controle financeiro, agenda, lembretes e assistente com IA), "
+        "assine um dos planos disponíveis.\n\n"
+        "Em breve você poderá renovar pelo nosso site ou pelo WhatsApp. Qualquer dúvida, estamos à disposição! 🚀"
+    )
+    state.setdefault("messages", []).append(AIMessage(content=mensagem))
+    return state
+
 
 SYSTEM_PROMPT = """
 💰 ASSISTENTE FINANCEIRO VIRTUAL 💰
 
-Você é o assistente digital financeiro do usuário! 🌟 Seu objetivo é ajudar os clientes a gerenciar suas finanças, registrar transações, gerar relatórios e oferecer insights financeiros de forma prática e amigável! 😄
+Você recebe o status do usuário (ativo, precisa_email, etc.). Se o status for diferente de "ativo", siga APENAS o bloco 🔓 MODO DEMO / PRÉ-CADASTRO. Se for "ativo", siga o bloco 🔐 MODO ATIVO.
+
+🔓 MODO DEMO / PRÉ-CADASTRO
+
+Quando o status do usuário for diferente de "ativo":
+
+• Apresente-se assim: "Leozera, seu assistente pessoal com IA direto no WhatsApp."
+• Informe que o cadastro não foi localizado.
+• Pergunte se o usuário deseja se cadastrar ou deseja mais informações.
+• Se o usuário pedir informações, explique de forma persuasiva e profissional:
+  - Controle financeiro automático
+  - Registro de gastos e entradas
+  - Relatórios inteligentes
+  - Agenda integrada com lembretes
+  - Assistente disponível 24h
+• Use copy persuasiva, clara e profissional.
+• Sempre finalize convidando para cadastro com o link: https://leozera.camppoia.com.br/login/
+• Nunca execute ferramentas nesse modo. Apenas converse e oriente sobre o cadastro.
+
+---
+
+🔐 MODO ATIVO (quando status do usuário for "ativo")
 
 📋 FLUXO DE ATENDIMENTO OBRIGATÓRIO
 
@@ -310,6 +466,10 @@ Dia com o maior gasto e categoria mais frequente.
 
 ✅ Para gerar relatórios, use a função gerar_relatorio para calcular as transações no período solicitado.
 
+✅ Se o usuário enviar CONFIRMAR <codigo> ou CANCELAR <codigo>, chame SEMPRE a tool confirmar_compromisso com o código extraído e acao "confirmar" ou "cancelar". Não responda manualmente.
+
+⚠️ Nunca pergunte confirmação de datas simples como: amanhã, hoje, sexta, próxima semana. A menos que haja ambiguidade real. Datas relativas simples devem ser assumidas automaticamente — use a DATA ATUAL DO SISTEMA fornecida no prompt como referência e chame as tools com o período/data já interpretado.
+
 🛠️ FERRAMENTAS DISPONÍVEIS
 
 📋 registrar_transacao → Registrar uma transação (gasto ou entrada).
@@ -349,6 +509,17 @@ A função busca e lista todos os compromissos do usuário no período solicitad
 Exemplo: "Quero cancelar meu compromisso para amanhã das 10:00 até 12:00" ou "Cancelar o compromisso do dia 25/12 às 10:00".
 
 A função localiza o compromisso usando data, hora_inicio e (opcionalmente) hora_fim, e remove do banco de dados. Se não encontrar, informa ao usuário.
+
+✅ confirmar_compromisso → Confirmar ou cancelar compromisso pelo código enviado no lembrete.
+
+Se o usuário enviar mensagem no formato:
+CONFIRMAR <codigo>
+ou
+CANCELAR <codigo>
+
+Você DEVE chamar a tool confirmar_compromisso extraindo o codigo e a acao ("confirmar" ou "cancelar"). Não responda manualmente; sempre use a tool.
+
+Exemplo: usuário escreve "CONFIRMAR a1b2c3" → chame confirmar_compromisso(codigo="a1b2c3", acao="confirmar"). Usuário escreve "CANCELAR a1b2c3" → chame confirmar_compromisso(codigo="a1b2c3", acao="cancelar").
 
 🔗 verificar_usuario → Verificar se o usuário está registrado.
 
@@ -439,6 +610,99 @@ def consultar_material_de_apoio(pergunta: str) -> str:
 # 💰 GESTÃO DE TRANSAÇÕES FINANCEIRAS
 # ========================================
 
+def escolher_categoria_ia(descricao: str, tipo: str, categorias_usuario: dict) -> str:
+    """
+    Usa IA para escolher a melhor categoria baseada na descrição da transação.
+    
+    Args:
+        descricao: Descrição da transação
+        tipo: Tipo da transação - "expense" (gasto) ou "income" (entrada)
+        categorias_usuario: Dict com categorias do usuário organizadas por tipo
+    
+    Returns:
+        Nome da categoria escolhida ou "Outros" se não conseguir determinar
+    """
+    try:
+        # Filtrar categorias relevantes baseado no tipo da transação
+        tipos_relevantes = []
+        if tipo == "expense":
+            # Para gastos, considerar categorias de despesas
+            tipos_relevantes = ['alimentacao', 'transporte', 'saude', 'lazer', 
+                              'educacao', 'habitacao', 'outros']
+        else:  # income
+            # Para entradas, considerar categorias de receitas
+            tipos_relevantes = ['receita', 'entrada', 'investimento']
+        
+        # Coletar todas as categorias relevantes em uma lista plana
+        categorias_lista = []
+        for tipo_cat in tipos_relevantes:
+            if tipo_cat in categorias_usuario:
+                categorias_lista.extend(categorias_usuario[tipo_cat])
+        
+        # Se não houver categorias, retornar "Outros"
+        if not categorias_lista:
+            print(f"[ESCOLHER_CATEGORIA_IA] Nenhuma categoria encontrada para tipo {tipo}")
+            return "Outros"
+        
+        # Formatar lista de categorias para o prompt
+        categorias_str = "\n".join([f"- {cat}" for cat in categorias_lista])
+        
+        # Criar prompt para a IA
+        prompt = f"""Você é um assistente financeiro especializado em categorizar transações.
+
+        Com base na descrição da transação, escolha a categoria MAIS ADEQUADA da lista abaixo.
+
+        DESCRIÇÃO DA TRANSAÇÃO: "{descricao}"
+        TIPO: {tipo} ({"gasto" if tipo == "expense" else "entrada"})
+
+        CATEGORIAS DISPONÍVEIS:
+        {categorias_str}
+
+        INSTRUÇÕES:
+        - Escolha APENAS UMA categoria da lista acima
+        - A categoria deve ser o nome EXATO de uma das opções listadas
+        - Se nenhuma categoria se encaixar perfeitamente, escolha "Outros"
+        - Responda APENAS com o nome da categoria, sem explicações ou pontuações extras
+
+        CATEGORIA ESCOLHIDA:"""
+
+        # Usar ChatOpenAI para escolher categoria
+        llm = ChatOpenAI(model="gpt-4o-mini", openai_api_key=OPENAI_API_KEY, temperature=0)
+        resposta = llm.invoke(prompt)
+        
+        categoria_escolhida = resposta.content.strip()
+        
+        # Validar se a categoria escolhida está na lista
+        # Fazer busca case-insensitive
+        categorias_lower = [cat.lower() for cat in categorias_lista]
+        categoria_escolhida_lower = categoria_escolhida.lower()
+        
+        # Encontrar correspondência exata ou mais próxima
+        categoria_encontrada = None
+        if categoria_escolhida_lower in categorias_lower:
+            # Encontrar o nome original (com case preservado)
+            idx = categorias_lower.index(categoria_escolhida_lower)
+            categoria_encontrada = categorias_lista[idx]
+        else:
+            # Tentar encontrar correspondência parcial
+            for cat in categorias_lista:
+                if categoria_escolhida_lower in cat.lower() or cat.lower() in categoria_escolhida_lower:
+                    categoria_encontrada = cat
+                    break
+        
+        if not categoria_encontrada:
+            print(f"[ESCOLHER_CATEGORIA_IA] Categoria '{categoria_escolhida}' não encontrada na lista. Usando 'Outros'")
+            return "Outros"
+        
+        print(f"[ESCOLHER_CATEGORIA_IA] ✅ Categoria escolhida: {categoria_encontrada} (baseado em: '{descricao}')")
+        return categoria_encontrada
+        
+    except Exception as e:
+        print(f"[ESCOLHER_CATEGORIA_IA] Erro ao escolher categoria: {e}")
+        import traceback
+        traceback.print_exc()
+        return "Outros"
+
 @tool("cadastrar_transacao")
 def cadastrar_transacao(valor: float, tipo: str, descricao: str = None, categoria: str = None, state: dict = None) -> str:
     """
@@ -519,12 +783,33 @@ def cadastrar_transacao(valor: float, tipo: str, descricao: str = None, categori
                 f"Exemplo: 'Compra de cigarro', 'Salário PM', 'Almoço no restaurante', etc."
             )
         
-        # Definir categoria padrão se não fornecida
+        # Se categoria não fornecida, usar IA para escolher automaticamente
         if not categoria or categoria.strip() == "":
-            categoria = "Outros"
+            try:
+                # Buscar categorias do usuário no MongoDB
+                user_doc = coll_clientes.find_one({'_id': ObjectId(user_id) if isinstance(user_id, str) else user_id})
+                categorias_usuario = {}
+                
+                if user_doc and 'categorias' in user_doc:
+                    categorias_usuario = user_doc.get('categorias', {})
+                    print(f"[CADASTRAR_TRANSACAO] Categorias do usuário encontradas: {list(categorias_usuario.keys())}")
+                else:
+                    print(f"[CADASTRAR_TRANSACAO] Usuário não possui categorias personalizadas. Usando 'Outros'")
+                    categoria = "Outros"
+                
+                # Se há categorias disponíveis, usar IA para escolher
+                if categorias_usuario:
+                    categoria = escolher_categoria_ia(descricao, tipo, categorias_usuario)
+                else:
+                    categoria = "Outros"
+                    
+            except Exception as e:
+                print(f"[CADASTRAR_TRANSACAO] Erro ao buscar categorias ou escolher com IA: {e}")
+                # Em caso de erro, usar categoria padrão
+                categoria = "Outros"
         
         # Obter data e hora atuais
-        created_at = datetime.utcnow()
+        created_at = datetime.now(pytz.timezone("America/Sao_Paulo"))
         hour = created_at.hour
         
         # Preparar documento da transação
@@ -556,7 +841,7 @@ def cadastrar_transacao(valor: float, tipo: str, descricao: str = None, categori
                 f"• Descrição: {descricao.strip()}\n"
                 f"• Categoria: {categoria.strip()}\n"
                 f"• Data: {created_at.strftime('%d/%m/%Y %H:%M')}\n\n"
-                f"A transação já está disponível no seu dashboard! 📊"
+                f"A transação já está disponível no seu dashboard! https://leozera.camppoia.com.br/finance/dashboard/ 📊"
             )
             
             return mensagem
@@ -815,13 +1100,13 @@ def gerar_relatorio(periodo: str = "último mês", tipo: str = None, state: dict
             relatorio += f"💸 *Maior Gasto:*\n"
             relatorio += f"• R$ {maior_gasto.get('value', 0):.2f} - {maior_gasto.get('description', 'N/A')}\n"
             relatorio += f"  Categoria: {maior_gasto.get('category', 'N/A')}\n"
-            relatorio += f"  Data: {maior_gasto.get('created_at', datetime.now()).strftime('%d/%m/%Y %H:%M')}\n\n"
+            relatorio += f"  Data: {maior_gasto.get('created_at', datetime.now(pytz.timezone('America/Sao_Paulo'))).strftime('%d/%m/%Y %H:%M')}\n\n"
         
         if maior_entrada:
             relatorio += f"💰 *Maior Entrada:*\n"
             relatorio += f"• R$ {maior_entrada.get('value', 0):.2f} - {maior_entrada.get('description', 'N/A')}\n"
             relatorio += f"  Categoria: {maior_entrada.get('category', 'N/A')}\n"
-            relatorio += f"  Data: {maior_entrada.get('created_at', datetime.now()).strftime('%d/%m/%Y %H:%M')}\n\n"
+            relatorio += f"  Data: {maior_entrada.get('created_at', datetime.now(pytz.timezone('America/Sao_Paulo'))).strftime('%d/%m/%Y %H:%M')}\n\n"
         
         if dia_maior_gasto:
             relatorio += f"📆 *Dia com Mais Gasto:*\n"
@@ -967,14 +1252,14 @@ def consultar_gasto_categoria(categoria: str, periodo: str = "último mês", sta
             resposta += (
                 f"💸 *Maior transação:*\n"
                 f"• R$ {maior_transacao.get('value', 0):.2f} - {maior_transacao.get('description', 'N/A')}\n"
-                f"  Data: {maior_transacao.get('created_at', datetime.now()).strftime('%d/%m/%Y %H:%M')}\n\n"
+                f"  Data: {maior_transacao.get('created_at', datetime.now(pytz.timezone('America/Sao_Paulo'))).strftime('%d/%m/%Y %H:%M')}\n\n"
             )
         
         # Se houver poucas transações (até 5), listar todas
         if num_transacoes <= 5:
             resposta += f"📋 *Transações:*\n"
             for i, trans in enumerate(transacoes, 1):
-                data_trans = trans.get('created_at', datetime.now())
+                data_trans = trans.get('created_at', datetime.now(pytz.timezone("America/Sao_Paulo")))
                 resposta += (
                     f"{i}. R$ {trans.get('value', 0):.2f} - {trans.get('description', 'N/A')} "
                     f"({data_trans.strftime('%d/%m/%Y')})\n"
@@ -1086,25 +1371,28 @@ def criar_compromisso(descricao: str, data: str, hora_inicio: str, hora_fim: str
         # Converter user_id para ObjectId se necessário
         user_id_obj = ObjectId(user_id) if not isinstance(user_id, ObjectId) else user_id
         
-        # Processar e validar data
+        # Processar e validar data (aceita data relativa: amanhã, quarta que vem, etc.)
         data_str = data.strip()
-        # Tentar converter formatos diferentes
-        try:
-            # Tentar formato DD/MM/YYYY primeiro
-            if '/' in data_str:
-                parts = data_str.split('/')
-                if len(parts) == 3:
-                    dia, mes, ano = parts
-                    data_obj = datetime(int(ano), int(mes), int(dia))
+        data_obj = None
+        # Tentar primeiro como período relativo
+        data_resolvida = resolver_data_relativa(data_str)
+        if data_resolvida is not None:
+            data_obj = datetime.combine(data_resolvida, datetime.min.time())
+        if data_obj is None:
+            try:
+                if '/' in data_str:
+                    parts = data_str.split('/')
+                    if len(parts) == 3:
+                        dia, mes, ano = parts
+                        data_obj = datetime(int(ano), int(mes), int(dia))
+                    else:
+                        raise ValueError("Formato de data inválido")
+                elif '-' in data_str:
+                    data_obj = datetime.strptime(data_str, '%Y-%m-%d')
                 else:
                     raise ValueError("Formato de data inválido")
-            # Tentar formato YYYY-MM-DD
-            elif '-' in data_str:
-                data_obj = datetime.strptime(data_str, '%Y-%m-%d')
-            else:
-                raise ValueError("Formato de data inválido")
-        except Exception as e:
-            return f"❌ Erro: Formato de data inválido. Use DD/MM/YYYY ou YYYY-MM-DD. Erro: {str(e)}"
+            except Exception as e:
+                return f"❌ Erro: Formato de data inválido. Use DD/MM/YYYY, YYYY-MM-DD ou termos como amanhã, quarta que vem. Erro: {str(e)}"
         
         # Validar que a data não é no passado (opcional, pode remover se quiser permitir)
         if data_obj.date() < datetime.now().date():
@@ -1187,12 +1475,16 @@ def criar_compromisso(descricao: str, data: str, hora_inicio: str, hora_fim: str
             'descricao': descricao.strip(),
             'data': data_obj,
             'hora': hora_inicio_formatada,  # Mantém compatibilidade (horário de início)
-            'hora_inicio': hora_inicio_formatada,  # Novo campo
-            'hora_fim': hora_fim_formatada,  # Novo campo
-            'tipo': None,  # Opcional
+            'hora_inicio': hora_inicio_formatada,
+            'hora_fim': hora_fim_formatada,
+            'tipo': None,
             'status': 'pendente',
-            'created_at': datetime.utcnow(),
-            'updated_at': datetime.utcnow()
+            'lembrete_12h_enviado': False,
+            'lembrete_1h_enviado': False,
+            'confirmacao_enviada': False,
+            'confirmado_usuario': False,
+            'created_at': datetime.now(pytz.timezone("America/Sao_Paulo")),
+            'updated_at': datetime.now(pytz.timezone("America/Sao_Paulo"))
         }
         
         # Inserir compromisso no MongoDB
@@ -1293,36 +1585,41 @@ def pesquisar_compromissos(periodo: str = "próximo mês", state: dict = None) -
         # Converter user_id para ObjectId se necessário
         user_id_obj = ObjectId(user_id) if not isinstance(user_id, ObjectId) else user_id
         
-        # Calcular período baseado no texto
-        periodo_lower = periodo.lower().strip()
-        hoje = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        
-        if "hoje" in periodo_lower:
-            start_date = hoje
-            end_date = hoje.replace(hour=23, minute=59, second=59)
-            periodo_label = "hoje"
-        elif "amanhã" in periodo_lower or "amanha" in periodo_lower:
-            start_date = hoje + timedelta(days=1)
-            end_date = start_date.replace(hour=23, minute=59, second=59)
-            periodo_label = "amanhã"
-        elif "semana" in periodo_lower or "7 dias" in periodo_lower:
-            start_date = hoje
-            end_date = hoje + timedelta(days=7)
-            periodo_label = "próximos 7 dias"
-        elif "mês" in periodo_lower or "mes" in periodo_lower:
-            start_date = hoje
-            # Próximo mês = 30 dias a partir de hoje
-            end_date = hoje + timedelta(days=30)
-            periodo_label = "próximo mês"
-        elif "15 dias" in periodo_lower:
-            start_date = hoje
-            end_date = hoje + timedelta(days=15)
-            periodo_label = "próximos 15 dias"
+        # Resolver período: tentar primeiro período relativo (hoje, amanhã, próxima semana, etc.)
+        intervalo = resolver_periodo_relativo(periodo)
+        if intervalo is not None:
+            start_date, end_date = intervalo
+            start_date = datetime.combine(start_date, datetime.min.time())
+            end_date = datetime.combine(end_date, datetime.max.time()).replace(hour=23, minute=59, second=59, microsecond=0)
+            periodo_label = periodo.strip()
         else:
-            # Padrão: próximo mês
-            start_date = hoje
-            end_date = hoje + timedelta(days=30)
-            periodo_label = "próximo mês"
+            # Fallback: calcular período baseado no texto (compatibilidade)
+            periodo_lower = periodo.lower().strip()
+            hoje = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            if "hoje" in periodo_lower:
+                start_date = hoje
+                end_date = hoje.replace(hour=23, minute=59, second=59)
+                periodo_label = "hoje"
+            elif "amanhã" in periodo_lower or "amanha" in periodo_lower:
+                start_date = hoje + timedelta(days=1)
+                end_date = start_date.replace(hour=23, minute=59, second=59)
+                periodo_label = "amanhã"
+            elif "semana" in periodo_lower or "7 dias" in periodo_lower:
+                start_date = hoje
+                end_date = hoje + timedelta(days=7)
+                periodo_label = "próximos 7 dias"
+            elif "mês" in periodo_lower or "mes" in periodo_lower:
+                start_date = hoje
+                end_date = hoje + timedelta(days=30)
+                periodo_label = "próximo mês"
+            elif "15 dias" in periodo_lower:
+                start_date = hoje
+                end_date = hoje + timedelta(days=15)
+                periodo_label = "próximos 15 dias"
+            else:
+                start_date = hoje
+                end_date = hoje + timedelta(days=30)
+                periodo_label = "próximo mês"
         
         print(f"[PESQUISAR_COMPROMISSOS] Período calculado: {start_date} até {end_date}")
         
@@ -1639,6 +1936,65 @@ def cancelar_compromisso(data: str, hora_inicio: str, hora_fim: str = None, stat
         return f"❌ Erro ao cancelar compromisso: {str(e)}"
 
 
+@tool("confirmar_compromisso")
+def confirmar_compromisso(codigo: str, acao: str, state: dict = None) -> str:
+    """
+    Confirma ou cancela um compromisso usando o código recebido no lembrete por WhatsApp.
+    Use quando o usuário enviar CONFIRMAR <codigo> ou CANCELAR <codigo>.
+    Args:
+        codigo: Código de 6 caracteres do lembrete (ex: a1b2c3).
+        acao: "confirmar" ou "cancelar".
+        state: Estado atual (deve conter user_info com user_id).
+    Returns:
+        Mensagem de sucesso ou erro.
+    """
+    if not codigo or not codigo.strip():
+        return "❌ Código inválido ou já processado."
+    codigo = codigo.strip()
+    acao = (acao or "").strip().lower()
+    if acao not in ("confirmar", "cancelar"):
+        return "❌ Ação inválida. Use confirmar ou cancelar."
+
+    if not state or not state.get("user_info"):
+        return "❌ Código inválido ou já processado."
+    user_id = state["user_info"].get("user_id")
+    if not user_id:
+        return "❌ Código inválido ou já processado."
+
+    try:
+        user_id_obj = ObjectId(user_id) if not isinstance(user_id, ObjectId) else user_id
+        compromisso = coll_compromissos.find_one({
+            "codigo_confirmacao": codigo,
+            "user_id": user_id_obj,
+            "confirmacao_pendente": True,
+        })
+        if not compromisso:
+            return "❌ Código inválido ou já processado."
+
+        if acao == "confirmar":
+            coll_compromissos.update_one(
+                {"_id": compromisso["_id"]},
+                {
+                    "$set": {
+                        "status": "confirmado",
+                        "confirmado_usuario": True,
+                        "confirmacao_pendente": False,
+                        "confirmado_em": datetime.now(pytz.timezone("America/Sao_Paulo")),
+                    }
+                },
+            )
+            return "✅ Compromisso confirmado com sucesso!"
+        else:
+            coll_compromissos.update_one(
+                {"_id": compromisso["_id"]},
+                {"$set": {"status": "cancelado", "confirmacao_pendente": False}},
+            )
+            return "❌ Compromisso cancelado com sucesso."
+    except Exception as e:
+        print(f"[CONFIRMAR_COMPROMISSO] Erro: {e}")
+        return "❌ Código inválido ou já processado."
+
+
 # ========================================
 # 🛠️ LISTA DE FERRAMENTAS
 # ========================================
@@ -1652,6 +2008,7 @@ tools = [
     criar_compromisso,
     pesquisar_compromissos,
     cancelar_compromisso,
+    confirmar_compromisso,
     # Consultas
     consultar_material_de_apoio
 ]
@@ -1664,176 +2021,291 @@ class AgentAssistente:
     def __init__(self):
         self.memory = self._init_memory()
         self.model = self._build_agent()
-    
+
+    # ------------------------------------
+    # Utils
+    # ------------------------------------
     def _convert_datetime_to_string(self, obj):
-        """Converte recursivamente qualquer datetime para string"""
         if hasattr(obj, 'isoformat'):
             return obj.isoformat()
         elif isinstance(obj, dict):
-            return {key: self._convert_datetime_to_string(value) for key, value in obj.items()}
+            return {k: self._convert_datetime_to_string(v) for k, v in obj.items()}
         elif isinstance(obj, list):
-            return [self._convert_datetime_to_string(item) for item in obj]
-        else:
-            return obj
-    
+            return [self._convert_datetime_to_string(i) for i in obj]
+        return obj
+
     def _prepare_safe_state(self, state: State) -> dict:
-        """Prepara o state para serialização segura"""
         try:
             safe_state = {}
-            
             for key, value in state.items():
                 if key == "messages":
                     continue
-                elif key in ["user_info"]:
-                    safe_state[key] = self._convert_datetime_to_string(value)
-                else:
-                    safe_state[key] = value
-            
+                safe_state[key] = self._convert_datetime_to_string(value)
             return safe_state
-            
         except Exception as e:
-            print(f"[PREPARE_SAFE_STATE] Erro ao preparar state: {e}")
-            return {
-                "user_info": state.get("user_info", {}),
-            }
- 
+            print(f"[PREPARE_SAFE_STATE] Erro: {e}")
+            return {"user_info": state.get("user_info", {})}
+
     def _init_memory(self):
-        memory = MongoDBSaver(coll_memoria)
-        return memory
-    
+        return MongoDBSaver(coll_memoria)
+
+    # ------------------------------------
+    # Build Agent
+    # ------------------------------------
     def _build_agent(self):
         graph_builder = StateGraph(State)
-        llm = ChatOpenAI(model="gpt-4o-mini", openai_api_key=OPENAI_API_KEY, streaming=True)
+
+        llm = ChatOpenAI(
+            model="gpt-4o-mini",
+            openai_api_key=OPENAI_API_KEY,
+            streaming=True
+        )
+
         llm_with_tools = llm.bind_tools(tools=tools)
-        tool_vector_search = ToolNode(tools=[consultar_material_de_apoio])
-        tools_node = ToolNode(tools=tools)
 
+        # --------------------------------
+        # Chatbot node
+        # --------------------------------
         def chatbot(state: State, config: RunnableConfig) -> State:
-            try:
-                user_info = state.get("user_info", {})
-                nome = user_info.get("nome", "usuário")
-                telefone = user_info.get("telefone", "indefinido")
+            user_info = state.get("user_info", {})
+            nome = user_info.get("nome")
+            telefone = user_info.get("telefone")
+            plano = user_info.get("plano")
+            status_assinatura = user_info.get("status_assinatura")
+            data_vencimento_plano = user_info.get("data_vencimento_plano")
 
-                # Instrução específica baseada no estado do usuário
-                if nome and nome != "usuário" and nome != "None":
-                    instrucao_especifica = f"\n\n🚨 INSTRUÇÃO CRÍTICA: O cliente {nome} JÁ ESTÁ IDENTIFICADO! NÃO peça o nome! Cumprimente pelo nome e vá direto para o atendimento!"
-                else:
-                    instrucao_especifica = f"\n\n🚨 INSTRUÇÃO CRÍTICA: O cliente NÃO está identificado! Peça o nome primeiro usando criar_cliente!"
-                
-                system_prompt = SystemMessage(
-                    content=SYSTEM_PROMPT + 
-                    f"\n\nCLIENTE ATUAL:\n- Nome: {nome}\n- Telefone: {telefone}" + 
-                    instrucao_especifica
+            # Trial expirado: atualizar banco e tratar como sem_plano
+            if plano == "trial" and data_vencimento_plano and getattr(data_vencimento_plano, "year", None):
+                now = datetime.utcnow()
+                venc = data_vencimento_plano
+                if getattr(venc, "tzinfo", None) is not None:
+                    from datetime import timezone as tz
+                    venc = venc.astimezone(tz.utc).replace(tzinfo=None)
+                if venc < now:
+                    user_id = user_info.get("user_id")
+                    if user_id:
+                        try:
+                            coll_clientes.update_one(
+                                {"_id": ObjectId(user_id)},
+                                {"$set": {
+                                    "plano": "sem_plano",
+                                    "status_assinatura": "vencida",
+                                    "assinatura.plano": "sem_plano",
+                                    "assinatura.status": "vencida",
+                                    "updated_at": datetime.utcnow(),
+                                }}
+                            )
+                        except Exception:
+                            pass
+                    user_info["plano"] = "sem_plano"
+                    user_info["status_assinatura"] = "vencida"
+                    plano = "sem_plano"
+                    status_assinatura = "vencida"
+
+            bloqueado = (
+                plano == "sem_plano"
+                or status_assinatura in ("vencida", "inativa")
+            )
+            link_planos = os.getenv("LINK_PLANOS", (DJANGO_BASE_URL or "").rstrip("/") + "/planos/")
+
+            if nome:
+                instrucao = (
+                    f"\n\n🚨 INSTRUÇÃO CRÍTICA: "
+                    f"O usuário {nome} JÁ ESTÁ IDENTIFICADO. "
+                    f"NÃO peça nome nem email."
                 )
-                
-                # Converte datetime no state para evitar erro de serialização
-                try:
-                    if 'user_info' in state and isinstance(state['user_info'], dict):
-                        state['user_info'] = self._convert_datetime_to_string(state['user_info'])
-                    
-                    response = llm_with_tools.invoke([system_prompt] + state["messages"])
-                except Exception as serialization_error:
-                    print(f"[DEBUG] Erro de serialização: {serialization_error}")
-                    state_clean = self._convert_datetime_to_string(state)
-                    response = llm_with_tools.invoke([system_prompt] + state_clean["messages"])
+            else:
+                instrucao = (
+                    "\n\n🚨 INSTRUÇÃO CRÍTICA: "
+                    "O usuário NÃO está identificado. "
+                    "Siga o fluxo de identificação."
+                )
 
-            except Exception as e:
-                print(f"[ERRO chatbot]: {e}")
-                raise
+            sem_plano_instrucao = ""
+            if bloqueado:
+                sem_plano_instrucao = (
+                    "\n\n🚨 INSTRUÇÃO CRÍTICA: "
+                    "O usuário está sem plano ativo (teste ou assinatura expirados). NÃO execute ferramentas. "
+                    "Responda de forma natural e amigável, incluindo esta informação: "
+                    "Seu período de teste ou assinatura expirou 😕 "
+                    "Para continuar utilizando todas as funcionalidades do Leozera, escolha um plano no link: " + link_planos + " "
+                    "Enquanto isso, posso te explicar como funciona ou tirar dúvidas. "
+                    "Mantenha o tom humanizado, sem parecer bloqueio técnico."
+                )
+
+            data_atual = datetime.now().strftime("%d/%m/%Y")
+            system_prompt = SystemMessage(
+                content=(
+                    SYSTEM_PROMPT +
+                    f"\n\nDATA ATUAL DO SISTEMA: {data_atual}\n"
+                    "Use essa data como referência ao interpretar termos como: hoje, amanhã, ontem, próxima semana, quarta que vem, mês que vem, sexta, etc.\n"
+                    f"\n\nUSUÁRIO ATUAL:"
+                    f"\n- Nome: {nome}"
+                    f"\n- Telefone: {telefone}"
+                    f"\n- Status: {user_info.get('status')}"
+                    f"\n- Plano: {plano}"
+                    f"\n- Status assinatura: {status_assinatura}"
+                    f"{instrucao}"
+                    f"{sem_plano_instrucao}"
+                )
+            )
+
+            state["user_info"] = self._convert_datetime_to_string(user_info)
+            if bloqueado:
+                response = llm.invoke([system_prompt] + state["messages"])
+            else:
+                response = llm_with_tools.invoke([system_prompt] + state["messages"])
 
             return {
                 **state,
                 "messages": state["messages"] + [response]
             }
 
-        # Wrapper customizado que passa o state para as tools de forma segura
+        # --------------------------------
+        # Tool node seguro
+        # --------------------------------
         def safe_tool_node(state: State) -> State:
-            """ToolNode customizado que passa o state para as tools sem quebrar serialização"""
-            try:
-                messages = state.get("messages", [])
-                if not messages:
-                    return state
-                
-                last_message = messages[-1]
-                if not hasattr(last_message, 'tool_calls') or not last_message.tool_calls:
-                    return state
-                
-                tool_messages = []
-                
-                for tool_call in last_message.tool_calls:
-                    tool_name = tool_call["name"]
-                    tool_args = tool_call["args"]
-                    
-                    # Encontra a tool correspondente
-                    tool_func = None
-                    for tool in tools:
-                        if tool.name == tool_name:
-                            tool_func = tool
-                            break
-                    
-                    if tool_func:
-                        try:
-                            # Prepara o state para serialização segura
-                            safe_state = self._prepare_safe_state(state)
-                            
-                            # Adiciona o state aos argumentos da tool se ela aceita
-                            if "state" in tool_func.func.__code__.co_varnames:
-                                tool_args["state"] = safe_state
-                            
-                            # Executa a tool
-                            result = tool_func.invoke(tool_args)
-                            
-                            # Cria ToolMessage de forma segura
-                            from langchain_core.messages import ToolMessage
-                            tool_message = ToolMessage(
-                                content=str(result) if result else "Executado com sucesso",
-                                tool_call_id=tool_call["id"],
-                                name=tool_name
-                            )
-                            tool_messages.append(tool_message)
-                            
-                        except Exception as e:
-                            print(f"[SAFE_TOOL_NODE] Erro ao executar {tool_name}: {e}")
-                            from langchain_core.messages import ToolMessage
-                            error_message = ToolMessage(
-                                content=f"Erro: {str(e)}",
-                                tool_call_id=tool_call["id"],
-                                name=tool_name
-                            )
-                            tool_messages.append(error_message)
-                
-                return {
-                    **state,
-                    "messages": state["messages"] + tool_messages
-                }
-                
-            except Exception as e:
-                print(f"[SAFE_TOOL_NODE] Erro geral: {e}")
+            from langchain_core.messages import ToolMessage
+
+            messages = state.get("messages", [])
+            if not messages:
                 return state
-        
-        tools_node = safe_tool_node
 
-        graph_builder.add_node("entrada_usuario", RunnableLambda(lambda state: state))
+            last_message = messages[-1]
+            if not getattr(last_message, "tool_calls", None):
+                return state
+
+            tool_messages = []
+            user_status = state.get("user_info", {}).get("status")
+            user_plano = state.get("user_info", {}).get("plano")
+
+            for call in last_message.tool_calls:
+                if user_status != "ativo":
+                    tool_messages.append(
+                        ToolMessage(
+                            content="🔒 Para utilizar essa funcionalidade é necessário cadastro.\nPosso te explicar como funciona ou enviar o link para se registrar.",
+                            tool_call_id=call["id"],
+                            name=call["name"]
+                        )
+                    )
+                    continue
+                if user_plano == "sem_plano":
+                    tool_messages.append(
+                        ToolMessage(
+                            content="Para usar essa funcionalidade é necessário ter um plano ativo. Seu período de teste terminou. Escolha um dos planos disponíveis para continuar usando o Leozera.",
+                            tool_call_id=call["id"],
+                            name=call["name"]
+                        )
+                    )
+                    continue
+
+                tool_func = next((t for t in tools if t.name == call["name"]), None)
+                if not tool_func:
+                    continue
+
+                try:
+                    safe_state = self._prepare_safe_state(state)
+                    if "state" in tool_func.func.__code__.co_varnames:
+                        call["args"]["state"] = safe_state
+
+                    result = tool_func.invoke(call["args"])
+
+                    tool_messages.append(
+                        ToolMessage(
+                            content=str(result),
+                            tool_call_id=call["id"],
+                            name=call["name"]
+                        )
+                    )
+                except Exception as e:
+                    tool_messages.append(
+                        ToolMessage(
+                            content=f"Erro: {e}",
+                            tool_call_id=call["id"],
+                            name=call["name"]
+                        )
+                    )
+
+            return {
+                **state,
+                "messages": state["messages"] + tool_messages
+            }
+
+        # --------------------------------
+        # Roteadores
+        # --------------------------------
+        def rotear_apos_check_user(state: State) -> str:
+            status = state.get("user_info", {}).get("status")
+            if status == "ativo":
+                return "check_plano"
+            if status == "precisa_email":
+                return "ask_email"
+            return "chatbot"
+
+        def rotear_apos_check_plano(state: State) -> str:
+            return state.get("user_info", {}).get("plano_result", "plano_ativo")
+
+        def rotear_apos_check_email(state: State) -> str:
+            return "chatbot"
+
+        # --------------------------------
+        # Nodes
+        # --------------------------------
+        graph_builder.add_node("entrada_usuario", RunnableLambda(lambda s: s))
         graph_builder.add_node("check_user_role", RunnableLambda(check_user))
+        graph_builder.add_node("check_plano", RunnableLambda(check_plano))
+        graph_builder.add_node("bloqueio_plano", RunnableLambda(bloqueio_plano))
+        graph_builder.add_node("ask_email", RunnableLambda(ask_email))
+        graph_builder.add_node("check_user_by_email", RunnableLambda(check_user_by_email))
         graph_builder.add_node("chatbot", chatbot)
-        graph_builder.add_node("tools", tools_node)
+        graph_builder.add_node("tools", safe_tool_node)
 
-        # Ordem de fluxo
+        # --------------------------------
+        # Fluxo
+        # --------------------------------
         graph_builder.set_entry_point("entrada_usuario")
         graph_builder.add_edge("entrada_usuario", "check_user_role")
-        graph_builder.add_edge("check_user_role", "chatbot")
-        
+
+        graph_builder.add_conditional_edges(
+            "check_user_role",
+            rotear_apos_check_user,
+            {
+                "check_plano": "check_plano",
+                "chatbot": "chatbot",
+                "ask_email": "ask_email",
+            }
+        )
+
+        graph_builder.add_conditional_edges(
+            "check_plano",
+            rotear_apos_check_plano,
+            {
+                "plano_ativo": "chatbot",
+                "sem_plano": "bloqueio_plano",
+            }
+        )
+
+        graph_builder.add_edge("bloqueio_plano", END)
+
+        graph_builder.add_edge("ask_email", "check_user_by_email")
+
+        graph_builder.add_conditional_edges(
+            "check_user_by_email",
+            rotear_apos_check_email,
+            {
+                "chatbot": "chatbot",
+            }
+        )
+
         graph_builder.add_conditional_edges(
             "chatbot",
             tools_condition,
             {"tools": "tools", "__end__": END}
         )
+
         graph_builder.add_edge("tools", "chatbot")
 
-        memory = MongoDBSaver(coll_memoria)
-        graph = graph_builder.compile(checkpointer=memory)
-        return graph
+        return graph_builder.compile(checkpointer=self.memory)
 
     def memory_agent(self):
         return self.model
-

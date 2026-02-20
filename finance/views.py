@@ -10,6 +10,8 @@ from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.contrib import messages
 import logging
+import os
+import json
 from finance.services.transaction_service import TransactionService
 from finance.services.dashboard_service import DashboardService
 from finance.services.compromisso_service import CompromissoService
@@ -18,6 +20,9 @@ from finance.models.categoria_model import CategoriaModel
 from core.decorators import audit_log
 from core.decorators.auth import login_required_mongo
 from datetime import datetime, timedelta
+from dotenv import load_dotenv,find_dotenv
+load_dotenv(find_dotenv())
+
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +69,120 @@ def dashboard_api_view(request):
     )
     
     return JsonResponse(data, json_dumps_params={'ensure_ascii': False})
+
+
+def insights_api_view(request):
+    """
+    API endpoint para insights financeiros gerados por IA.
+
+    GET /finance/api/insights/?period=mensal
+
+    Reaproveita a lógica do dashboard para obter dados consolidados,
+    envia para OpenAI (gpt-4o-mini) e retorna insight, alerta e recomendação em JSON.
+    SEGURANÇA: user_id é extraído do request.user_mongo (garantido pelo middleware).
+    """
+    if not hasattr(request, 'user_mongo') or not request.user_mongo:
+        return JsonResponse({'error': 'Não autenticado'}, status=401)
+
+    user_id = str(request.user_mongo['_id'])
+    period = request.GET.get('period', 'mensal')
+
+    try:
+        service = DashboardService()
+        dashboard_data = service.get_dashboard_data(user_id=user_id, period=period)
+    except Exception as e:
+        logger.exception("Erro ao obter dados do dashboard para insights: %s", e)
+        return JsonResponse({
+            'error': 'Erro ao carregar dados',
+            'message': str(e)
+        }, status=500)
+
+    # Extrair apenas dados consolidados para o prompt (valores serializáveis para JSON)
+    def _serialize(obj):
+        if obj is None:
+            return None
+        if isinstance(obj, (int, float, str, bool)):
+            return obj
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        if isinstance(obj, dict):
+            return {k: _serialize(v) for k, v in obj.items()}
+        if isinstance(obj, (list, tuple)):
+            return [_serialize(v) for v in obj]
+        return str(obj)
+
+    raw = {
+        'total_income': dashboard_data.get('total_income', 0),
+        'total_expenses': dashboard_data.get('total_expenses', 0),
+        'balance': dashboard_data.get('balance', 0),
+        'day_with_highest_expense': dashboard_data.get('day_with_highest_expense'),
+        'category_with_highest_expense': dashboard_data.get('category_with_highest_expense'),
+        'hour_with_highest_expense': dashboard_data.get('hour_with_highest_expense'),
+    }
+    payload = _serialize(raw)
+    dados_json = json.dumps(payload, ensure_ascii=False, indent=2)
+
+    prompt = (
+        "Você é um assistente financeiro inteligente.\n"
+        "Analise os dados abaixo e gere:\n\n"
+        "- Um insight estratégico\n"
+        "- Um alerta (se houver risco)\n"
+        "- Uma recomendação prática\n\n"
+        "Responda em JSON no formato:\n"
+        '{"insight": "...", "alerta": "...", "recomendacao": "..."}\n\n'
+        "Dados:\n"
+        f"{dados_json}"
+    )
+    print("OPENAI_API_KEY:", os.getenv("OPENAI_API_KEY"))
+    api_key = os.getenv('OPENAI_API_KEY')
+    if not api_key:
+        logger.warning("OPENAI_API_KEY não configurada; retornando fallback para insights.")
+        fallback = {
+            'insight': 'Configure OPENAI_API_KEY no .env para receber análises automáticas.',
+            'alerta': '',
+            'recomendacao': 'Adicione OPENAI_API_KEY nas variáveis de ambiente e chame o endpoint novamente.',
+        }
+        return JsonResponse(fallback, json_dumps_params={'ensure_ascii': False})
+
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key)
+        response = client.chat.completions.create(
+            model='gpt-4o-mini',
+            messages=[{'role': 'user', 'content': prompt}],
+            temperature=0.5,
+        )
+        content = (response.choices[0].message.content or '').strip()
+    except Exception as e:
+        logger.exception("Erro ao chamar OpenAI para insights: %s", e)
+        fallback = {
+            'insight': 'Não foi possível gerar o insight no momento. Tente novamente mais tarde.',
+            'alerta': '',
+            'recomendacao': 'Verifique sua conexão e a configuração da OPENAI_API_KEY.',
+        }
+        return JsonResponse(fallback, json_dumps_params={'ensure_ascii': False})
+
+    # Parse da resposta como JSON
+    try:
+        if content.startswith('```'):
+            content = content.split('```')[1]
+            if content.startswith('json'):
+                content = content[4:].strip()
+        parsed = json.loads(content)
+        result = {
+            'insight': parsed.get('insight', ''),
+            'alerta': parsed.get('alerta', ''),
+            'recomendacao': parsed.get('recomendacao', ''),
+        }
+    except (json.JSONDecodeError, TypeError) as e:
+        logger.warning("Resposta da OpenAI não é JSON válido: %s", e)
+        result = {
+            'insight': 'Análise gerada com sucesso, mas o formato não pôde ser processado.',
+            'alerta': '',
+            'recomendacao': 'Tente novamente ou altere o período para obter um novo insight.',
+        }
+
+    return JsonResponse(result, json_dumps_params={'ensure_ascii': False})
 
 
 @login_required_mongo
@@ -362,6 +481,28 @@ def categorias_api_view(request):
             'message': str(e)
         }, status=500)
 
+from .services.ai_insights import gerar_insights_financeiros
+
+
+@login_required_mongo
+def api_insights(request):
+    period = request.GET.get("period", "mensal")
+
+    # 🔹 DADOS TEMPORÁRIOS PARA TESTE
+    # Depois vamos integrar com os dados reais do dashboard
+    dados_para_ia = {
+        "periodo": period,
+        "total_income": 10000,
+        "total_expenses": 7500,
+        "balance": 2500,
+        "top_category": "Transporte",
+        "top_day": "Segunda",
+        "top_hour": "18:00",
+    }
+
+    insights = gerar_insights_financeiros(dados_para_ia)
+
+    return JsonResponse(insights)
 
 @login_required_mongo
 def criar_transacao_view(request):

@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+
+{% block title %}Política de Privacidade - Leozera{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-3xl mx-auto">
+        <div class="bg-white rounded-xl shadow-lg p-8 sm:p-10">
+            <h1 class="text-2xl font-bold text-gray-900 mb-2">Política de Privacidade – Leozera</h1>
+            <p class="text-sm text-gray-500 mb-8">Última atualização: 16/02/2026</p>
+
+            <div class="prose prose-gray max-w-none text-gray-700 space-y-6">
+                <section>
+                    <h2 class="text-lg font-semibold text-gray-900 mt-6 mb-2">1. Introdução</h2>
+                    <p>O Leozera, por meio de sua equipe responsável, respeita sua privacidade e está comprometido com a proteção dos dados pessoais de seus usuários, em conformidade com a Lei nº 13.709/2018 (Lei Geral de Proteção de Dados – LGPD).</p>
+                </section>
+
+                <section>
+                    <h2 class="text-lg font-semibold text-gray-900 mt-6 mb-2">2. Dados que coletamos</h2>
+                    <p>Podemos coletar as seguintes informações:</p>
+                    <ul class="list-disc pl-6 mt-2 space-y-1">
+                        <li>Nome completo</li>
+                        <li>Endereço de e-mail</li>
+                        <li>Número de telefone</li>
+                        <li>Cidade</li>
+                        <li>Informações relacionadas a compromissos cadastrados</li>
+                        <li>Dados técnicos de acesso (IP, navegador, data e horário)</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2 class="text-lg font-semibold text-gray-900 mt-6 mb-2">3. Finalidade do tratamento dos dados</h2>
+                    <p>Os dados são utilizados para:</p>
+                    <ul class="list-disc pl-6 mt-2 space-y-1">
+                        <li>Criar e gerenciar sua conta</li>
+                        <li>Permitir o funcionamento do assistente no WhatsApp</li>
+                        <li>Enviar lembretes e notificações</li>
+                        <li>Processar pagamentos e assinaturas (quando aplicável)</li>
+                        <li>Melhorar a experiência do usuário</li>
+                        <li>Cumprir obrigações legais</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2 class="text-lg font-semibold text-gray-900 mt-6 mb-2">4. Compartilhamento de dados</h2>
+                    <p>Seus dados podem ser compartilhados com:</p>
+                    <ul class="list-disc pl-6 mt-2 space-y-1">
+                        <li>Provedores de infraestrutura (ex.: servidores e hospedagem)</li>
+                        <li>Serviços de mensageria (ex.: WhatsApp via WAHA)</li>
+                        <li>Plataformas de pagamento (ex.: Mercado Pago, Pagar.me)</li>
+                        <li>Serviços de envio de e-mail</li>
+                    </ul>
+                    <p class="mt-2">O compartilhamento ocorre apenas quando necessário para a prestação do serviço.</p>
+                </section>
+
+                <section>
+                    <h2 class="text-lg font-semibold text-gray-900 mt-6 mb-2">5. Armazenamento e segurança</h2>
+                    <p>O Leozera adota medidas técnicas e organizacionais para proteger seus dados contra:</p>
+                    <ul class="list-disc pl-6 mt-2 space-y-1">
+                        <li>Acessos não autorizados</li>
+                        <li>Vazamentos</li>
+                        <li>Alterações indevidas</li>
+                        <li>Perdas</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2 class="text-lg font-semibold text-gray-900 mt-6 mb-2">6. Seus direitos como titular de dados</h2>
+                    <p>Você pode, a qualquer momento:</p>
+                    <ul class="list-disc pl-6 mt-2 space-y-1">
+                        <li>Solicitar acesso aos seus dados</li>
+                        <li>Solicitar correção de dados incorretos</li>
+                        <li>Solicitar exclusão da sua conta</li>
+                        <li>Revogar consentimentos</li>
+                    </ul>
+                    <p class="mt-2">Para exercer seus direitos, entre em contato pelo e-mail:</p>
+                    <p class="mt-1"><a href="mailto:leozerassistente@gmail.com" class="text-primary-600 hover:text-primary-700 font-medium">leozerassistente@gmail.com</a></p>
+                </section>
+
+                <section>
+                    <h2 class="text-lg font-semibold text-gray-900 mt-6 mb-2">7. Retenção dos dados</h2>
+                    <p>Os dados serão armazenados enquanto sua conta estiver ativa ou pelo tempo necessário para cumprimento de obrigações legais.</p>
+                </section>
+
+                <section>
+                    <h2 class="text-lg font-semibold text-gray-900 mt-6 mb-2">8. Alterações nesta Política</h2>
+                    <p>Esta Política pode ser atualizada periodicamente. Recomendamos que você revise este documento regularmente.</p>
+                </section>
+
+                <section>
+                    <h2 class="text-lg font-semibold text-gray-900 mt-6 mb-2">9. Controlador dos dados</h2>
+                    <p>Controlador responsável:</p>
+                    <ul class="list-none mt-2 space-y-1">
+                        <li><strong>Nome:</strong> Vinícius de Campos Pires</li>
+                        <li><strong>CPF:</strong> 451.109.318-01</li>
+                        <li><strong>E-mail de contato:</strong> <a href="mailto:leozerassistente@gmail.com" class="text-primary-600 hover:text-primary-700">leozerassistente@gmail.com</a></li>
+                    </ul>
+                </section>
+            </div>
+
+            <div class="mt-10 pt-6 border-t border-gray-200">
+                <a href="{% url 'core:register' %}" class="text-primary-600 hover:text-primary-700 font-medium text-sm">← Voltar ao cadastro</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

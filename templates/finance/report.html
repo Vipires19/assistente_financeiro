@@ -1,6 +1,6 @@
-{% extends 'base.html' %}
+{% extends 'base_dashboard.html' %}
 
-{% block title %}Relatório Financeiro{% endblock %}
+{% block title %}Relatório Inteligente de Saúde Financeira{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-50">
@@ -14,10 +14,15 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                         </svg>
                     </a>
-                    <h1 class="text-xl font-semibold text-gray-900">Relatório Financeiro</h1>
+                    <div>
+                        <h1 class="text-xl font-semibold text-gray-900">Relatório Inteligente de Saúde Financeira</h1>
+                        <p class="text-sm text-gray-500 mt-1">
+                            Análise detalhada do período selecionado com base no seu comportamento financeiro.
+                        </p>
+                    </div>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <button onclick="window.print()" class="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors">
+                    <button onclick="window.print()" class="btn-neon px-4 py-2 text-sm font-medium rounded-lg">
                         🖨️ Imprimir
                     </button>
                     <a href="{% url 'core:logout' %}" class="text-sm text-gray-600 hover:text-gray-900">

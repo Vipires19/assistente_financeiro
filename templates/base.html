@@ -29,8 +29,20 @@
     </script>
     {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-gray-50 antialiased">
-    {% block content %}{% endblock %}
+<body class="bg-gray-50 antialiased flex flex-col min-h-screen">
+    <main class="flex-1">
+        {% block content %}{% endblock %}
+    </main>
+    <footer class="mt-auto py-4 px-4 text-center text-xs text-gray-500 border-t border-gray-200 bg-white">
+        <p class="mb-1">© 2026 Leozera. Todos os direitos reservados.</p>
+        <p>
+            <a href="{% url 'core:planos' %}" class="text-primary-600 hover:text-primary-700">Planos</a>
+            <span class="mx-1">·</span>
+            <a href="{% url 'core:termos_de_uso' %}" class="text-primary-600 hover:text-primary-700">Termos de Uso</a>
+            <span class="mx-1">·</span>
+            <a href="{% url 'core:politica_privacidade' %}" class="text-primary-600 hover:text-primary-700">Política de Privacidade</a>
+        </p>
+    </footer>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'base_dashboard.html' %}
 
 {% block title %}Dashboard Financeiro{% endblock %}
 
@@ -7,26 +7,9 @@
 {% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50">
-    <!-- Header -->
-    <header class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-10">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center">
-                    <h1 class="text-xl font-semibold text-gray-900">Dashboard Financeiro</h1>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <span class="text-sm text-gray-600 hidden sm:inline">{{ user.email }}</span>
-                    <a href="{% url 'core:logout' %}" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">
-                        Sair
-                    </a>
-                </div>
-            </div>
-        </div>
-    </header>
-
+<div class="dashboard-finance-content min-h-screen">
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <!-- Filtro de Período -->
         <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div class="flex items-center space-x-2">
@@ -37,29 +20,24 @@
                     <option value="mensal" selected>Mensal</option>
                 </select>
             </div>
-            <div class="flex items-center space-x-2">
-                <a href="{% url 'finance:criar-transacao' %}" class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
-                    ➕ Novo Lançamento
-                </a>
-                <a href="{% url 'finance:agenda' %}" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
-                    📅 Agenda
-                </a>
-                <button id="manageCategoriesBtn" class="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors">
-                    🏷️ Gerenciar Categorias
-                </button>
-                <button id="generateReportBtn" class="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
-                    📊 Gerar Relatório
-                </button>
-            </div>
+        </div>
+
+        <div class="mb-6 bg-gradient-to-r from-blue-600 to-emerald-500 rounded-xl p-6 text-white shadow-lg">
+            <h2 id="dashboardGreeting" class="text-2xl font-semibold">
+                Olá 👋
+            </h2>
+            <p id="dashboardSubGreeting" class="text-sm opacity-90 mt-1">
+                Aqui está o resumo financeiro até agora.
+            </p>
         </div>
 
         <!-- Cards de Métricas -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             <!-- Card: Gastos -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-medium text-gray-600">Gastos</p>
+                        <p class="text-sm font-medium text-gray-600">Despesas Totais</p>
                         <p class="text-2xl font-bold text-red-600 mt-1" id="totalExpenses">
                             R$ 0,00
                         </p>
@@ -73,10 +51,10 @@
             </div>
 
             <!-- Card: Entradas -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-medium text-gray-600">Entradas</p>
+                        <p class="text-sm font-medium text-gray-600">Receitas Totais</p>
                         <p class="text-2xl font-bold text-green-600 mt-1" id="totalIncome">
                             R$ 0,00
                         </p>
@@ -90,10 +68,10 @@
             </div>
 
             <!-- Card: Saldo -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-medium text-gray-600">Saldo</p>
+                        <p class="text-sm font-medium text-gray-600">Resultado do Período</p>
                         <p class="text-2xl font-bold mt-1" id="balance">
                             R$ 0,00
                         </p>
@@ -107,7 +85,7 @@
             </div>
 
             <!-- Card: Dia com Maior Gasto -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm font-medium text-gray-600">Dia com Maior Gasto</p>
@@ -124,7 +102,7 @@
             </div>
 
             <!-- Card: Categoria com Maior Gasto -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm font-medium text-gray-600">Categoria com Maior Gasto</p>
@@ -141,7 +119,7 @@
             </div>
 
             <!-- Card: Horário com Maior Gasto -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm font-medium text-gray-600">Horário com Maior Gasto</p>
@@ -158,10 +136,17 @@
             </div>
         </div>
 
+        <div class="bg-white border border-primary-200 rounded-xl p-4 shadow-sm mb-6">
+            <h3 class="font-semibold text-primary-600">Insight Inteligente 🤖</h3>
+            <p id="aiInsightText" class="text-sm mt-2 text-gray-700">
+                Em breve você verá análises automáticas baseadas no seu comportamento financeiro.
+            </p>
+        </div>
+
         <!-- Seção de Gráficos -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <!-- Gráfico: Despesas e Entradas por Categoria -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Despesas e Entradas por Categoria</h3>
                 <div class="h-64">
                     <canvas id="categoryChart"></canvas>
@@ -169,7 +154,7 @@
             </div>
 
             <!-- Gráfico: Gastos por Dia da Semana -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Gastos por Dia da Semana</h3>
                 <div class="h-64">
                     <canvas id="weekdayChart"></canvas>
@@ -177,7 +162,7 @@
             </div>
 
             <!-- Gráfico: Gastos por Horário -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 lg:col-span-2">
+            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4 lg:col-span-2">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Gastos por Horário do Dia</h3>
                 <div class="h-64">
                     <canvas id="hourChart"></canvas>
@@ -186,7 +171,7 @@
         </div>
 
         <!-- Tabela de Transações -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div class="px-4 sm:px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <h3 class="text-lg font-semibold text-gray-900 mb-2 sm:mb-0">Transações</h3>
                 <div id="transactionsPaginationInfo" class="text-sm text-gray-600"></div>
@@ -234,7 +219,7 @@
                 </div>
             </div>
         </div>
-    </main>
+    </div>
 </div>
 
 <!-- Modal de Gerenciamento de Categorias -->
@@ -292,7 +277,7 @@
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
                         </div>
                         <div class="flex items-end">
-                            <button type="submit" class="w-full px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors">
+                            <button type="submit" class="btn-neon w-full px-4 py-2 text-sm font-medium rounded-md">
                                 Adicionar
                             </button>
                         </div>
@@ -437,6 +422,14 @@ function destroyChart(chartInstance) {
 }
 
 // Função para carregar gráficos
+function getChartThemeColors() {
+    var isDark = document.body.classList.contains('dark-mode');
+    return {
+        grid: isDark ? 'rgba(148, 163, 184, 0.15)' : 'rgba(0,0,0,0.05)',
+        tick: isDark ? '#94a3b8' : '#64748b'
+    };
+}
+
 async function loadCharts(period = 'mensal') {
     try {
         console.log('Carregando gráficos para período:', period);
@@ -490,14 +483,15 @@ async function loadCharts(period = 'mensal') {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
+                    plugins: (function() {
+                        var t = getChartThemeColors();
+                        return {
                         legend: {
                             position: 'bottom',
                             labels: {
                                 padding: 10,
-                                font: {
-                                    size: 12
-                                }
+                                color: t.tick,
+                                font: { size: 12 }
                             }
                         },
                         tooltip: {
@@ -509,17 +503,18 @@ async function loadCharts(period = 'mensal') {
                                 }
                             }
                         }
-                    },
-                    scales: hasMultipleDatasets ? {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return formatCurrency(value);
-                                }
+                        };
+                    })(),
+                    scales: hasMultipleDatasets ? (function() {
+                        var t = getChartThemeColors();
+                        return {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: t.grid },
+                                ticks: { color: t.tick, callback: function(value) { return formatCurrency(value); } }
                             }
-                        }
-                    } : undefined
+                        };
+                    })() : undefined
                 }
             });
         }
@@ -568,16 +563,16 @@ async function loadCharts(period = 'mensal') {
                             }
                         }
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return formatCurrency(value);
-                                }
+                    scales: (function() {
+                        var t = getChartThemeColors();
+                        return {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: t.grid },
+                                ticks: { color: t.tick, callback: function(value) { return formatCurrency(value); } }
                             }
-                        }
-                    }
+                        };
+                    })()
                 }
             });
         }
@@ -632,21 +627,20 @@ async function loadCharts(period = 'mensal') {
                             }
                         }
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return formatCurrency(value);
-                                }
+                    scales: (function() {
+                        var t = getChartThemeColors();
+                        return {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: t.grid },
+                                ticks: { color: t.tick, callback: function(value) { return formatCurrency(value); } }
+                            },
+                            x: {
+                                grid: { color: t.grid },
+                                ticks: { color: t.tick, maxTicksLimit: 12 }
                             }
-                        },
-                        x: {
-                            ticks: {
-                                maxTicksLimit: 12  // Mostra apenas algumas horas para não ficar muito cheio
-                            }
-                        }
-                    }
+                        };
+                    })()
                 }
             });
         }
@@ -773,8 +767,38 @@ async function loadTransactions(page = 1, limit = 20) {
     }
 }
 
+// Atualiza texto do sub-greeting conforme o período selecionado
+function updateDashboardSubGreeting() {
+    const periodFilterEl = document.getElementById('periodFilter');
+    const subGreetingEl = document.getElementById('dashboardSubGreeting');
+    if (!periodFilterEl || !subGreetingEl) return;
+    const period = periodFilterEl.value;
+    const messages = {
+        'diário': 'Aqui está o resumo do seu dia até agora.',
+        'semanal': 'Aqui está o resumo da sua semana até agora.',
+        'mensal': 'Aqui está o resumo do seu mês até agora.'
+    };
+    subGreetingEl.textContent = messages[period] || 'Aqui está o seu resumo financeiro até agora.';
+}
+
+async function loadInsights(period) {
+    try {
+        const response = await fetch(`/finance/api/insights/?period=${period}`);
+        const data = await response.json();
+
+        document.getElementById('aiInsightText').innerHTML = `
+            <strong>Insight:</strong> ${data.insight}<br><br>
+            <strong>Alerta:</strong> ${data.alerta || "Nenhum alerta crítico no momento."}<br><br>
+            <strong>Recomendação:</strong> ${data.recomendacao}
+        `;
+    } catch (error) {
+        console.error("Erro ao carregar insights:", error);
+    }
+}
+
 // Função para recarregar tudo
 async function reloadDashboard() {
+    updateDashboardSubGreeting();
     const period = document.getElementById('periodFilter').value;
     currentTransactionsPage = 1; // Reset para primeira página
     await Promise.all([
@@ -782,45 +806,49 @@ async function reloadDashboard() {
         loadCharts(period),
         loadTransactions(1, transactionsLimit)
     ]);
+    await loadInsights(period);
 }
 
 // Event listeners
 document.getElementById('periodFilter').addEventListener('change', reloadDashboard);
 
-document.getElementById('generateReportBtn').addEventListener('click', async () => {
-    const period = document.getElementById('periodFilter').value;
-    const btn = document.getElementById('generateReportBtn');
-    
-    // Desabilita botão durante geração
-    btn.disabled = true;
-    btn.textContent = 'Gerando...';
-    
-    try {
-        // Gera relatório via API
-        const response = await fetch(`${API_BASE}/report/?period=${period}&format=json`);
-        const data = await response.json();
+const generateReportBtn = document.getElementById('generateReportBtn');
+if (generateReportBtn) {
+    generateReportBtn.addEventListener('click', async () => {
+        const period = document.getElementById('periodFilter').value;
+        const btn = document.getElementById('generateReportBtn');
         
-        if (data.error) {
-            alert(`Erro: ${data.error}`);
-            return;
+        // Desabilita botão durante geração
+        btn.disabled = true;
+        btn.textContent = 'Gerando...';
+        
+        try {
+            // Gera relatório via API
+            const response = await fetch(`${API_BASE}/report/?period=${period}&format=json`);
+            const data = await response.json();
+            
+            if (data.error) {
+                alert(`Erro: ${data.error}`);
+                return;
+            }
+            
+            // Opção 1: Abrir em nova página
+            const reportUrl = `/finance/report/?period=${period}`;
+            window.open(reportUrl, '_blank');
+            
+            // Opção 2: Mostrar em modal (comentado)
+            // showReportModal(data);
+            
+        } catch (error) {
+            console.error('Erro ao gerar relatório:', error);
+            alert('Erro ao gerar relatório. Tente novamente.');
+        } finally {
+            // Reabilita botão
+            btn.disabled = false;
+            btn.textContent = '📊 Gerar Relatório';
         }
-        
-        // Opção 1: Abrir em nova página
-        const reportUrl = `/finance/report/?period=${period}`;
-        window.open(reportUrl, '_blank');
-        
-        // Opção 2: Mostrar em modal (comentado)
-        // showReportModal(data);
-        
-    } catch (error) {
-        console.error('Erro ao gerar relatório:', error);
-        alert('Erro ao gerar relatório. Tente novamente.');
-    } finally {
-        // Reabilita botão
-        btn.disabled = false;
-        btn.textContent = '📊 Gerar Relatório';
-    }
-});
+    });
+}
 
 // Paginação de transações
 document.getElementById('prevPageBtn').addEventListener('click', () => {
@@ -1003,10 +1031,13 @@ async function deleteCategory(tipo, categoriaNome) {
 }
 
 // Event listeners do modal
-document.getElementById('manageCategoriesBtn').addEventListener('click', () => {
-    document.getElementById('categoriesModal').classList.remove('hidden');
-    loadCategories();
-});
+const manageCategoriesBtn = document.getElementById('manageCategoriesBtn');
+if (manageCategoriesBtn) {
+    manageCategoriesBtn.addEventListener('click', () => {
+        document.getElementById('categoriesModal').classList.remove('hidden');
+        loadCategories();
+    });
+}
 
 document.getElementById('closeCategoriesModal').addEventListener('click', () => {
     document.getElementById('categoriesModal').classList.add('hidden');
@@ -1031,6 +1062,7 @@ document.getElementById('addCategoryForm').addEventListener('submit', async (e) 
 
 // Carrega dados iniciais
 document.addEventListener('DOMContentLoaded', () => {
+    updateDashboardSubGreeting();
     reloadDashboard();
 });
 </script>
