@@ -1,23 +1,147 @@
 # Leozera
 
-## 🚀 Sobre o Projeto
+Sistema SaaS de organização financeira com inteligência artificial integrada ao WhatsApp.
 
-**Leozera** é um SaaS de gestão financeira pessoal com assistente inteligente via WhatsApp. A plataforma combina controle de receitas e despesas, relatórios, agenda com lembretes e um assistente com IA para atendimento 24h, voltado a usuários que desejam organizar suas finanças com praticidade.
-
-O sistema oferece período de teste gratuito, planos mensal e anual com pagamento recorrente via Mercado Pago, e downgrade automático ao fim do trial ou da assinatura, mantendo o usuário sempre ciente do status da conta.
+O objetivo é permitir que usuários registrem gastos, recebam insights financeiros e acompanhem sua vida financeira através de um dashboard inteligente.
 
 ---
 
-## ✨ Funcionalidades
+# Funcionalidades
 
-- **Dashboard financeiro** — Visão consolidada por período (diário, semanal, mensal): totais de despesas e receitas, resultado do período, dia/categoria/horário de maior gasto, gráficos por categoria, dia da semana e horário, tabela de transações com paginação.
-- **Insights com IA** — Análise automática dos dados do período com insight estratégico, alertas e recomendações (endpoint `/finance/api/insights/`).
-- **Relatório inteligente** — Relatório textual detalhado do período selecionado, com resumo e metadados; preparado para impressão.
-- **Transações** — Registro de entradas e gastos com categoria, descrição e data; listagem filtrada por período e paginada.
-- **Categorias** — Categorias pré-definidas e personalizadas por tipo (receita, despesa, etc.); gerenciamento via interface.
-- **Agenda e compromissos** — Calendário (dia/semana/mês), criação e edição de compromissos com data e hora; integração com sistema de lembretes.
-- **Configurações de perfil** — Edição de nome, telefone e foto de perfil; alteração de senha com validação; alteração de e-mail com confirmação por link.
-- **Página de planos** — Exibição de planos disponíveis e fluxo de assinatura (checkout Mercado Pago).
+## Registro de transações via WhatsApp
+
+Usuários podem registrar gastos ou receitas enviando mensagens no WhatsApp.
+
+Exemplo:
+
+*"Gastei 45 reais no mercado"*
+
+A IA interpreta e registra a transação automaticamente.
+
+## Dashboard financeiro
+
+Interface web onde o usuário pode visualizar:
+
+- Total de gastos
+- Total de receitas
+- Saldo do período
+- Categoria com maior gasto
+- Dia com maior gasto
+- Horário com maior gasto
+- Gráficos financeiros
+
+## Insights com IA
+
+O sistema gera automaticamente:
+
+- análise financeira
+- alertas de comportamento
+- recomendações
+
+## Relatórios automáticos
+
+Geração de relatório financeiro mensal com análise detalhada.
+
+## Sistema de categorias
+
+Usuários podem:
+
+- criar categorias
+- editar categorias
+- remover categorias
+
+Cada usuário possui seu próprio conjunto de categorias.
+
+## Sistema de planos
+
+Controle de assinatura do usuário.
+
+## Integração com WhatsApp
+
+Usuários podem iniciar conversa com o assistente diretamente pelo dashboard.
+
+## Suporte pelo WhatsApp
+
+Botão "Leozera WPP" no dashboard.
+
+## Página de novidades
+
+Sistema interno para comunicação com os usuários.
+
+Tipos de novidades:
+
+- Nova funcionalidade
+- Melhoria
+- Correção de bug
+- Notícia
+
+Admins podem publicar atualizações.
+
+Usuários podem visualizar artigos detalhados.
+
+## Sistema de feedback da comunidade
+
+Usuários podem:
+
+- enviar sugestões
+- relatar bugs
+
+Esses tickets são enviados por email.
+
+---
+
+# Stack tecnológica
+
+**Backend:**
+
+- Python
+- Django
+- MongoDB
+
+**Frontend:**
+
+- HTML
+- TailwindCSS
+- JavaScript
+
+**Infraestrutura:**
+
+- PythonAnywhere
+- WhatsApp API (WAHA)
+
+**IA:**
+
+- OpenAI
+
+---
+
+# Arquitetura do sistema
+
+- Web app Django
+- Banco MongoDB
+- Integração com WhatsApp
+- Processamento de IA para interpretação de mensagens
+- Dashboard financeiro
+
+---
+
+# Versionamento
+
+**Versão atual:** `v0.2.0`
+
+## Versões
+
+### v0.2.0
+
+Principais mudanças:
+
+- integração completa com WhatsApp
+- dashboard financeiro
+- insights automáticos com IA
+- sistema de categorias por usuário
+- página de novidades
+- suporte via WhatsApp
+- sistema de sugestões e reporte de bugs
 
 ---
 
@@ -37,35 +161,11 @@ O fluxo inclui verificação de assinatura (trial, mensal, anual), bloqueio amig
 
 ## 💳 Planos e Assinaturas
 
-- **Trial** — 7 dias gratuitos para novos usuários; ao expirar, o usuário é rebaixado para “sem plano” e pode ser notificado (ex.: WhatsApp).
+- **Trial** — 7 dias gratuitos para novos usuários; ao expirar, o usuário é rebaixado para "sem plano" e pode ser notificado (ex.: WhatsApp).
 - **Mensal e anual** — Assinatura recorrente via **Mercado Pago** (preapproval); checkout iniciado a partir do dashboard (Django) e webhook para confirmação/cancelamento.
 - **Downgrade automático** — Tarefas agendadas (Celery Beat) verificam trial e planos vencidos e atualizam o status no banco (sem_plano / inativa), mantendo a experiência consistente com a assinatura.
 
 Os dados de assinatura são centralizados no objeto `assinatura` do usuário (plano, status, datas, gateway, etc.), com compatibilidade com campos legados.
-
----
-
-## 🔔 Sistema de Lembretes
-
-- **Celery Worker + Celery Beat** — Execução de tarefas assíncronas e agendadas com **Redis** como broker e backend.
-- **Lembretes de compromissos** — Verificação periódica (ex.: a cada 5 minutos) para enviar:
-  - Lembrete 12h antes e/ou pedido de confirmação.
-  - Lembrete 1h antes.
-- **Trial expirado** — Notificação ao usuário quando o período de teste termina (com opção de envio via WhatsApp).
-- **Planos vencidos** — Rebaixamento automático de usuários com data de vencimento ultrapassada.
-
-O envio de mensagens utiliza o serviço centralizado **WAHA** (WhatsApp).
-
----
-
-## 🏗️ Arquitetura
-
-- **Backend** — Django 4.2 (apps `core` e `finance`), autenticação via sessão e middleware que injeta o usuário do MongoDB (`user_mongo`). APIs REST sob `/finance/api/` e `/api/`.
-- **Banco de dados** — **MongoDB** (dados de usuários, transações, compromissos, assinaturas); acesso via repositórios e, onde configurado, MongoEngine. SQLite usado apenas para sessões do Django, se aplicável.
-- **Filas** — **Redis** como broker/backend do Celery; workers no app `agent_ia` (tasks de lembretes, trial e planos vencidos).
-- **Assinaturas** — Módulo `mercadopago_assinatura` (Flask-compatível) para criação de preapproval e tratamento de webhook; usuários identificados por `gateway_subscription_id` ou campos legados.
-- **E-mail** — Serviço de e-mail (ex.: Resend) para confirmação de cadastro, recuperação de senha e confirmação de novo e-mail.
-- **Frontend** — Templates Django (HTML/JS/CSS), dashboard com Chart.js, consumo das APIs de dashboard, gráficos, transações, insights e relatório.
 
 ---
 
@@ -77,25 +177,6 @@ O envio de mensagens utiliza o serviço centralizado **WAHA** (WhatsApp).
 - **Alteração de e-mail** — Novo e-mail só é ativado após confirmação por link (token), sem alterar o banco antes da confirmação.
 - **APIs** — Endpoints de dados (dashboard, insights, transações, etc.) utilizam o `user_id` do usuário autenticado (sessão), sem confiar em parâmetros do cliente para identificação.
 - **Webhook Mercado Pago** — Validação do preapproval na API do Mercado Pago antes de atualizar o status da assinatura no banco.
-
----
-
-## 🧩 Tecnologias Utilizadas
-
-| Camada        | Tecnologia |
-|---------------|------------|
-| Backend       | Python 3.11, Django 4.2, Django REST Framework |
-| Banco de dados| MongoDB (PyMongo, MongoEngine), SQLite (sessões) |
-| Filas         | Celery 5.3, Redis 7 |
-| Pagamentos    | Mercado Pago (assinatura recorrente) |
-| IA            | OpenAI (gpt-4o-mini), LangChain (assistente) |
-| E-mail        | Resend (ou provedor configurável) |
-| WhatsApp      | WAHA (WhatsApp HTTP API) |
-| Frontend      | HTML/CSS/JS, Chart.js, Tailwind CSS (onde aplicado) |
-| Servidor      | Gunicorn |
-| Ambiente      | Docker, Docker Compose |
-
-Variáveis sensíveis (chaves de API, conexões MongoDB, Redis, etc.) vêm do ambiente (`.env`); nenhuma chave deve ser commitada.
 
 ---
 
@@ -154,54 +235,21 @@ A aplicação estará disponível em `http://localhost:8000` (ou na porta config
 
 ---
 
-## 🐳 Docker
+## 🌎 Deploy (PythonAnywhere)
 
-O projeto inclui `Dockerfile` e `docker-compose.yml` para rodar a aplicação, Redis e Celery em containers.
-
-### Serviços
-
-- **web** — Aplicação Django (Gunicorn) na porta 8000.
-- **redis** — Redis 7 (broker e backend do Celery).
-- **celery_worker** — Worker Celery (tasks de lembretes, trial, planos vencidos).
-- **celery_beat** — Agendador Celery (agenda das tarefas periódicas).
-
-### Uso
-
-1. Configure o `.env` na raiz com as mesmas variáveis da instalação local (MongoDB, Redis, APIs, etc.).
-
-2. Suba os serviços:
+1. **Atualizar código no servidor:**
    ```bash
-   docker-compose up -d
+   git pull origin main
    ```
 
-3. A aplicação estará em `http://localhost:8000`. O worker e o beat usarão o Redis e o MongoDB definidos no `.env`.
+2. **Atualizar dependências (se necessário):**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-Para desenvolvimento com volume montado (código local refletido no container), o `docker-compose` já monta o diretório atual em `/app`.
-
----
-
-## 🌎 Deploy
-
-Para produção:
-
-- Defina `DEBUG=False` e um `SECRET_KEY` forte.
-- Configure `ALLOWED_HOSTS` com o(s) domínio(s) da aplicação.
-- Use um servidor de aplicação (Gunicorn) atrás de um proxy reverso (Nginx, Cloudflare, etc.).
-- Garanta MongoDB e Redis acessíveis a partir do ambiente de produção.
-- Configure variáveis de ambiente (incluindo chaves de API e URLs de webhook do Mercado Pago) no provedor de deploy (VPS, PaaS, etc.).
-- Se o assistente e os lembretes rodarem no mesmo projeto, garanta que o Celery worker e o beat tenham acesso ao mesmo Redis e MongoDB e às mesmas variáveis de ambiente.
+3. **Recarregar a aplicação** no painel do PythonAnywhere (Web → Reload).
 
 Não commite arquivos `.env` ou credenciais no repositório.
-
----
-
-## 📌 Roadmap
-
-- Evolução do relatório (exportação PDF, mais períodos).
-- Ampliação dos insights de IA no dashboard (mais métricas e sugestões).
-- Notificações in-app além do WhatsApp.
-- Melhorias de acessibilidade e responsividade na interface.
-- Testes automatizados (unitários e de integração) para core e finance.
 
 ---
 

@@ -1,0 +1,62 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}Novidades do Leozera{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-4" style="background: var(--content-bg); min-height: 100%;">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+        <h1 class="h3 mb-0" style="color: var(--text-primary);">
+            <i class="bi bi-megaphone me-2" style="color: var(--neon-green);"></i>Novidades do Leozera
+        </h1>
+        {% if user_mongo and user_mongo.role == 'admin' %}
+        <a href="{% url 'core:admin_create_update' %}" class="btn btn-sm d-flex align-items-center gap-2" style="background: #2563EB; color: #fff; border: none; border-radius: 0.5rem;">
+            <i class="bi bi-plus-lg"></i> Publicar novidade
+        </a>
+        {% endif %}
+    </div>
+
+    <p class="mb-4" style="color: var(--text-muted); font-size: 0.9375rem;">Confira as últimas atualizações do sistema.</p>
+
+    {% if not updates %}
+    <div class="rounded-3 p-5 text-center" style="background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-muted);">
+        <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+        <p class="mb-0">Nenhuma novidade publicada ainda.</p>
+    </div>
+    {% else %}
+    <div class="row g-4">
+        {% for update in updates %}
+        <div class="col-12 col-lg-8 col-xl-7">
+            <div class="h-100 bg-[#1E293B] border border-white/10 shadow-lg rounded-xl p-6 transition hover:border-[#00F7D3]/40 hover:shadow-xl hover:scale-[1.01]">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="px-3 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1
+                        {% if update.tipo == 'Nova funcionalidade' %}bg-emerald-500/15 text-emerald-400
+                        {% elif update.tipo == 'Melhoria' %}bg-blue-500/15 text-blue-400
+                        {% elif update.tipo == 'Correção de bug' %}bg-red-500/15 text-red-400
+                        {% elif update.tipo == 'Notícia' %}bg-purple-500/15 text-purple-400
+                        {% else %}bg-purple-500/15 text-purple-400
+                        {% endif %}">
+                        {% if update.tipo == 'Nova funcionalidade' %}✨ Nova funcionalidade
+                        {% elif update.tipo == 'Melhoria' %}⚡ Melhoria
+                        {% elif update.tipo == 'Correção de bug' %}🐞 Correção de bug
+                        {% elif update.tipo == 'Notícia' %}📰 Notícia
+                        {% else %}🔄 {{ update.tipo|default:"Atualização" }}
+                        {% endif %}
+                    </span>
+                </div>
+                <h2 class="text-white text-lg font-semibold mb-2">{{ update.titulo }}</h2>
+                <p class="text-gray-300 text-sm mb-3 whitespace-pre-wrap">{{ update.descricao }}</p>
+                <div class="text-gray-500 text-xs">
+                    <i class="bi bi-calendar3 me-1"></i>
+                    {% if update.data_publicacao %}
+                        {{ update.data_publicacao|date:"d/m/Y" }} às {{ update.data_publicacao|time:"H:i" }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

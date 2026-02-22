@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leozera — Organize sua vida financeira no WhatsApp</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563EB',
+                        'ai-neon': '#00F7D3',
+                        bg: '#020617',
+                        card: '#1E293B',
+                        text: '#F8FAFC',
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #020617; }
+        .gradient-official { background: linear-gradient(135deg, #2563EB, #00F7D3); }
+        .gradient-text { background: linear-gradient(135deg, #2563EB, #00F7D3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .btn-cta { background: linear-gradient(135deg, #2563EB, #00F7D3); border-radius: 12px; transition: transform 0.25s ease, box-shadow 0.25s ease; }
+        .btn-cta:hover { transform: translateY(-2px); box-shadow: 0 0 32px rgba(0, 247, 211, 0.45), 0 0 48px rgba(37, 99, 235, 0.25); }
+        .card-landing { background: #1E293B; border-radius: 16px; padding: 24px; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .card-landing:hover {transform: translateY(-8px) scale(1.03);box-shadow: 0 20px 80px rgba(0,0,0,0.5);}
+        .glow-neon { box-shadow: 0 0 40px rgba(0, 247, 211, 0.2); }
+        .glass { background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(248, 250, 252, 0.08); }
+        /* Hero neon glow */
+        .hero-glow-wrap { position: relative; }
+        /* Glow neon atrás do mockup: gradiente azul e verde */
+        .hero-mockup-glow-bg {
+            position: relative;
+            background: radial-gradient(ellipse 80% 70% at 50% 50%, rgba(0, 247, 211, 0.2) 0%, rgba(37, 99, 235, 0.15) 45%, transparent 70%);
+            border-radius: 24px;
+            padding: 12px;
+        }
+        .hero-mockup-glow-bg::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 26px;
+            padding: 2px;
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.5), rgba(0, 247, 211, 0.4));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+        .dashboard-preview{
+        max-width:620px;
+        margin:auto;
+        }
+        .headline-glow { text-shadow: 0 0 40px rgba(0, 247, 211, 0.15); }
+        .badge-hero { background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.1); border-radius: 9999px; padding: 6px 14px; font-size: 13px; color: #94a3b8; }
+        /* FAQ accordion */
+        .faq-item { border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; margin-bottom: 12px; overflow: hidden; background: #1E293B; }
+        .faq-item summary { list-style: none; padding: 20px 24px; cursor: pointer; font-weight: 600; display: flex; justify-content: space-between; align-items: center; gap-4; }
+        .faq-item summary::-webkit-details-marker { display: none; }
+        .faq-item summary .faq-chevron { flex-shrink: 0; transition: transform 0.2s; color: #00F7D3; }
+        .faq-item[open] summary .faq-chevron { transform: rotate(180deg); }
+        .faq-item .faq-answer { padding: 0 24px 20px; color: #94a3b8; border-top: 1px solid rgba(255,255,255,0.05); }
+        .faq-item .faq-answer-inner { padding-top: 16px; }
+        /* CTA final: fundo gradiente + botão com glow neon */
+        .cta-final-section { background: linear-gradient(135deg, rgba(37, 99, 235, 0.25) 0%, rgba(0, 247, 211, 0.15) 50%, rgba(37, 99, 235, 0.1) 100%); }
+        .cta-final-btn { box-shadow: 0 0 40px rgba(0, 247, 211, 0.4), 0 0 80px rgba(37, 99, 235, 0.2); }
+        .cta-final-btn:hover { box-shadow: 0 0 56px rgba(0, 247, 211, 0.5), 0 0 100px rgba(37, 99, 235, 0.3); }
+        /* Animações: fade-in ao rolar */
+        .animate-on-scroll { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+        .animate-on-scroll.in-view { opacity: 1; transform: translateY(0); }
+        /* Transições suaves em links e elementos interativos */
+        a, button { transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease; }
+        .faq-item summary { transition: background-color 0.2s ease; }
+        .faq-item summary:hover { background: rgba(255,255,255,0.03); }
+    </style>
+</head>
+<body class="text-[#F8FAFC] antialiased">
+    <!-- Nav -->
+    <nav class="fixed top-0 left-0 right-0 z-50 glass border-b border-white/5">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
+            <span class="text-xl font-bold gradient-text">Leozera</span>
+            <div class="flex items-center gap-4">
+                <a href="#como-funciona" class="text-sm text-gray-300 hover:text-white transition">Como funciona</a>
+                <a href="#planos" class="text-sm text-gray-300 hover:text-white transition">Planos</a>
+                <a href="{% url 'core:login' %}" class="text-sm text-gray-300 hover:text-white transition">Entrar</a>
+                <a href="{% url 'core:register' %}" class="btn-cta px-4 py-2 text-sm font-semibold text-[#020617]">Começar grátis</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="min-h-screen flex flex-col justify-center pt-28 pb-20 px-4 sm:px-6 hero-glow-wrap relative overflow-hidden">
+
+        <!-- fundo gradiente animado -->
+        <div class="absolute inset-0 opacity-20 blur-3xl"
+            style="background: radial-gradient(circle at 30% 30%, #2563EB, transparent 40%), radial-gradient(circle at 70% 70%, #00F7D3, transparent 40%);">
+        </div>
+    
+        <div class="max-w-6xl mx-auto w-full relative z-10">
+    
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+    
+                <!-- TEXTO -->
+                <div class="text-center lg:text-left">
+    
+                    <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight headline-glow">
+                        Organize sua vida financeira direto no 
+                        <span class="gradient-text">WhatsApp</span>
+                    </h1>
+    
+                    <p class="mt-6 text-lg text-gray-400 max-w-xl">
+                        O Leozera usa inteligência artificial para registrar seus gastos,
+                        gerar relatórios e mostrar exatamente para onde seu dinheiro está indo.
+                    </p>
+    
+                    <div class="mt-8 flex flex-wrap gap-4 justify-center lg:justify-start">
+    
+                        <a href="{% url 'core:register' %}" 
+                        class="btn-cta px-8 py-4 text-base font-semibold text-[#020617] glow-neon">
+                            Começar teste grátis
+                        </a>
+    
+                        <a href="#como-funciona"
+                        class="px-8 py-4 rounded-xl border border-white/20 text-white font-medium hover:bg-white/5 transition">
+                            Ver como funciona
+                        </a>
+    
+                    </div>
+    
+                    <div class="mt-6 flex gap-3 justify-center lg:justify-start">
+                        <span class="badge-hero">7 dias grátis</span>
+                        <span class="badge-hero">Sem cartão</span>
+                        <span class="badge-hero">Setup em 1 minuto</span>
+                    </div>
+    
+                </div>
+    
+                <!-- Coluna direita: mockup -->
+            <div class="flex justify-center lg:justify-end">
+
+                <div class="relative w-full max-w-xl">
+
+                    <div class="hero-mockup-glow-bg p-4 rounded-2xl">
+
+                        <img
+                        src="{% static 'img/landing/dashboard_mockup.png' %}"
+                        alt="Dashboard Leozera"
+                        class="w-full rounded-xl shadow-2xl border border-white/10">
+
+                    </div>
+
+                </div>
+
+            </div>
+    
+        </div>
+    
+    </section>
+
+    <!-- Como funciona -->
+    <section id="como-funciona" class="animate-on-scroll py-20 px-4 sm:px-6">
+        <div class="max-w-5xl mx-auto">
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-16">Como funciona</h2>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="card-landing text-center">
+                    <span class="text-4xl mb-4 block">1️⃣</span>
+                    <h3 class="text-xl font-semibold mb-2">Envie uma mensagem</h3>
+                    <p class="text-gray-400 text-sm italic">"Gastei 45 reais no mercado"</p>
+                </div>
+                <div class="card-landing text-center">
+                    <span class="text-4xl mb-4 block">2️⃣</span>
+                    <h3 class="text-xl font-semibold mb-2">A IA registra</h3>
+                    <p class="text-gray-400">A transação é categorizada automaticamente.</p>
+                </div>
+                <div class="card-landing text-center">
+                    <span class="text-4xl mb-4 block">3️⃣</span>
+                    <h3 class="text-xl font-semibold mb-2">Veja no dashboard</h3>
+                    <p class="text-gray-400">Gráficos e relatórios inteligentes.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Simulação WhatsApp -->
+    <section class="animate-on-scroll py-20 px-4 sm:px-6 border-t border-white/5">
+        <div class="max-w-3xl mx-auto">
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-12">
+                Seu assistente financeiro 24h no WhatsApp
+            </h2>
+            <div class="card-landing max-w-md mx-auto rounded-2xl overflow-hidden p-0 shadow-2xl">
+
+                <img 
+                src="{% static 'img/landing/whatsapp_mockup.jpeg' %}" 
+                alt="Assistente financeiro no WhatsApp"
+                class="w-full object-cover">
+            
+            </div>
+                <!--<div class="space-y-4">
+                    <div class="flex justify-end">
+                        <div class="bg-[#2563EB] text-white px-4 py-3 rounded-2xl rounded-br-md max-w-[85%]">
+                            gastei 60 reais no uber
+                        </div>
+                    </div>
+                    <div class="flex justify-start">
+                        <div class="bg-card border border-white/10 text-gray-200 px-4 py-3 rounded-2xl rounded-bl-md max-w-[85%]">
+                            Transação registrada 🚗<br>
+                            <span class="text-[#00F7D3] text-sm">Categoria: Transporte</span>
+                        </div> -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dashboard -->
+    <section class="animate-on-scroll py-20 px-4 sm:px-6 border-t border-white/5">
+        <div class="max-w-5xl mx-auto">
+            <p class="text-center text-sm font-medium text-[#00F7D3] uppercase tracking-wider mb-3">Dashboard Inteligente</p>
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-12">
+                Veja exatamente para onde seu dinheiro está indo.
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+                <div class="card-landing">
+                    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Total gasto</p>
+                    <p class="text-xl font-bold text-red-400">R$ 2.340</p>
+                </div>
+                <div class="card-landing">
+                    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Categoria com maior gasto</p>
+                    <p class="text-lg font-semibold text-[#F8FAFC]">Alimentação</p>
+                </div>
+                <div class="card-landing">
+                    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Dia com mais gastos</p>
+                    <p class="text-lg font-semibold text-[#F8FAFC]">Sábado, 15/02</p>
+                </div>
+                <div class="card-landing">
+                    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Horário de maior gasto</p>
+                    <p class="text-lg font-semibold text-[#F8FAFC]">19h – 20h</p>
+                </div>
+            </div>
+            <div class="dashboard-screenshot w-full aspect-video min-h-[300px] rounded-2xl bg-card border border-white/10 flex items-center justify-center overflow-hidden">
+                <img 
+                    src="{% static 'img/landing/dashboard_print.png' %}"
+                    alt="Dashboard financeiro completo"
+                    class="w-full h-full object-contain rounded-xl shadow-[0_30px_80px_rgba(0,0,0,0.6)] border border-white/10">
+            </div>
+            <div class="mt-6 w-full aspect-video min-h-[240px] rounded-2xl bg-card border border-white/10 flex items-center justify-center overflow-hidden">
+                <img 
+                    src="{% static 'img/landing/relatorio_print.png' %}"
+                    alt="Relatório financeiro automático"
+                    class="w-full h-full object-contain rounded-xl shadow-[0_30px_80px_rgba(0,0,0,0.6)] border border-white/10">
+            </div>
+        </div>
+    </section>
+
+    <!-- Insights IA -->
+    <section class="animate-on-scroll py-20 px-4 sm:px-6 border-t border-white/5">
+        <div class="max-w-5xl mx-auto">
+            <p class="text-center text-sm font-medium text-[#00F7D3] uppercase tracking-wider mb-3">Insights com IA</p>
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-12">
+                A IA analisa seus hábitos financeiros
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
+                <div class="card-landing border border-[#00F7D3]/20">
+                    <p class="text-gray-300">"Seus gastos com delivery aumentaram 37% este mês."</p>
+                </div>
+                <div class="card-landing border border-[#00F7D3]/20">
+                    <p class="text-gray-300">"Você gasta mais às sextas-feiras."</p>
+                </div>
+                <div class="card-landing border border-[#00F7D3]/20">
+                    <p class="text-gray-300">"Transporte representa 22% das suas despesas."</p>
+                </div>
+            </div>
+            <div class="w-full aspect-video min-h-[280px] rounded-2xl bg-card border border-white/10 flex items-center justify-center overflow-hidden">
+                <img 
+                    src="{% static 'img/landing/insights.png' %}"
+                    alt="Insights financeiros com IA"
+                    class="w-full h-full object-contain rounded-xl shadow-[0_30px_80px_rgba(0,0,0,0.6)] border border-white/10">
+            </div>
+        </div>
+    </section>
+
+    <!-- Benefícios -->
+    <section class="animate-on-scroll py-20 px-4 sm:px-6 border-t border-white/5">
+        <div class="max-w-5xl mx-auto">
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-16">Benefícios</h2>
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="card-landing"><p class="font-medium">Controle financeiro simples</p></div>
+                <div class="card-landing"><p class="font-medium">Registro de gastos pelo WhatsApp</p></div>
+                <div class="card-landing"><p class="font-medium">Relatórios automáticos</p></div>
+                <div class="card-landing"><p class="font-medium">Insights com IA</p></div>
+                <div class="card-landing"><p class="font-medium">Dashboard inteligente</p></div>
+                <div class="card-landing"><p class="font-medium">Alertas financeiros</p></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Prova social -->
+    <section class="animate-on-scroll py-20 px-4 sm:px-6 border-t border-white/5">
+        <div class="max-w-5xl mx-auto">
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-16">
+                Feito para quem quer controle financeiro real
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+                <div class="card-landing text-center md:text-left flex flex-col items-center md:items-start">
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#2563EB]/20 to-[#00F7D3]/20 flex items-center justify-center mb-4 text-[#00F7D3]">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Controle financeiro simples</h3>
+                    <p class="text-gray-400 text-sm">Tudo em um só lugar: despesas, receitas e saldo sem complicação.</p>
+                </div>
+                <div class="card-landing text-center md:text-left flex flex-col items-center md:items-start">
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#2563EB]/20 to-[#00F7D3]/20 flex items-center justify-center mb-4 text-[#00F7D3]">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">IA que analisa seus gastos</h3>
+                    <p class="text-gray-400 text-sm">Insights automáticos e recomendações com base no seu comportamento.</p>
+                </div>
+                <div class="card-landing text-center md:text-left flex flex-col items-center md:items-start">
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#2563EB]/20 to-[#00F7D3]/20 flex items-center justify-center mb-4 text-[#00F7D3]">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Registro de gastos pelo WhatsApp</h3>
+                    <p class="text-gray-400 text-sm">Anote gastos e receitas na conversa; a IA organiza por você.</p>
+                </div>
+            </div>
+            <div class="pt-12 border-t border-white/10 min-h-[120px] flex items-center justify-center">
+                <!-- LOGOS DE CLIENTES -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Planos -->
+    <section id="planos" class="animate-on-scroll py-20 px-4 sm:px-6 border-t border-white/5">
+        <div class="max-w-4xl mx-auto text-center">
+            <h2 class="text-3xl sm:text-4xl font-bold mb-4">Planos</h2>
+            <p class="text-gray-400 mb-2">Trial grátis por 7 dias.</p>
+            <p class="text-gray-400 mb-10">Plano mensal · Plano anual</p>
+            <a href="{% url 'core:register' %}" class="btn-cta inline-block px-10 py-4 text-lg font-semibold text-[#020617] glow-neon">
+                Começar teste grátis
+            </a>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="animate-on-scroll py-20 px-4 sm:px-6 border-t border-white/5">
+        <div class="max-w-2xl mx-auto">
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-12">Perguntas frequentes</h2>
+            <div class="faq-accordion">
+                <details class="faq-item">
+                    <summary>
+                        Preciso conectar meu banco?
+                        <svg class="faq-chevron w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                    </summary>
+                    <div class="faq-answer"><div class="faq-answer-inner">Não. Você pode registrar gastos manualmente pelo WhatsApp.</div></div>
+                </details>
+                <details class="faq-item">
+                    <summary>
+                        Preciso instalar aplicativo?
+                        <svg class="faq-chevron w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                    </summary>
+                    <div class="faq-answer"><div class="faq-answer-inner">Não. O Leozera funciona direto no WhatsApp.</div></div>
+                </details>
+                <details class="faq-item">
+                    <summary>
+                        Posso cancelar quando quiser?
+                        <svg class="faq-chevron w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                    </summary>
+                    <div class="faq-answer"><div class="faq-answer-inner">Sim.</div></div>
+                </details>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA final -->
+    <section class="animate-on-scroll cta-final-section py-24 px-4 sm:px-6 border-t border-white/5">
+        <div class="max-w-3xl mx-auto text-center">
+            <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#F8FAFC]">
+                Pare de perder o controle do seu dinheiro.
+            </h2>
+            <p class="mt-6 text-lg text-gray-300">
+                Comece agora gratuitamente e deixe a IA organizar suas finanças.
+            </p>
+            <a href="{% url 'core:register' %}" class="btn-cta cta-final-btn inline-block mt-10 px-14 py-5 text-xl font-semibold text-[#020617] rounded-xl">
+                Começar teste grátis
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-8 px-4 border-t border-white/5">
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+            <span class="font-semibold gradient-text">Leozera</span>
+            <div class="flex gap-6 text-sm text-gray-400">
+                <a href="{% url 'core:termos_de_uso' %}" class="hover:text-white transition">Termos de uso</a>
+                <a href="{% url 'core:politica_privacidade' %}" class="hover:text-white transition">Privacidade</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var els = document.querySelectorAll('.animate-on-scroll');
+        if (!els.length) return;
+        var io = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+                if (entry.isIntersecting) { entry.target.classList.add('in-view'); }
+            });
+        }, { rootMargin: '0px 0px -60px 0px', threshold: 0.1 });
+        els.forEach(function(el) { io.observe(el); });
+    })();
+    </script>
+</body>
+</html>

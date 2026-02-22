@@ -12,6 +12,7 @@ app_name = 'core'
 
 urlpatterns = [
     path('', views.index_view, name='index'),
+    path('landing/', views.landing_view, name='landing'),
     path('login/', views.login_view, name='login'),
     path('register/', views.register_view, name='register'),
     path('cadastro/concluido/', views.cadastro_concluido_view, name='cadastro_concluido'),
@@ -32,6 +33,8 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('dashboard/', views.index_view, name='dashboard'),
     path('configuracoes/', views.configuracoes_view, name='configuracoes'),
+    path('novidades/', views.novidades_view, name='novidades'),
+    path('gerenciar/updates/create/', views.admin_create_update_view, name='admin_create_update'),
     path('confirmar-novo-email/<str:token>/', views.confirmar_novo_email_view, name='confirmar_novo_email'),
     path('debug-session/', views.debug_session),
 ]

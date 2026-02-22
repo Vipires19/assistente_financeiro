@@ -31,13 +31,13 @@ PLANOS_CONFIG = {
         "reason": "Plano Mensal Leozera",
         "frequency": 1,
         "frequency_type": "months",
-        "transaction_amount": 39.90,
+        "transaction_amount": 29.90,
     },
     "anual": {
         "reason": "Plano Anual Leozera",
         "frequency": 12,
         "frequency_type": "months",
-        "transaction_amount": 397.00,
+        "transaction_amount": 296.90,
     },
 }
 

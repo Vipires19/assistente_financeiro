@@ -133,7 +133,7 @@ def insights_api_view(request):
         "Dados:\n"
         f"{dados_json}"
     )
-    print("OPENAI_API_KEY:", os.getenv("OPENAI_API_KEY"))
+    
     api_key = os.getenv('OPENAI_API_KEY')
     if not api_key:
         logger.warning("OPENAI_API_KEY não configurada; retornando fallback para insights.")

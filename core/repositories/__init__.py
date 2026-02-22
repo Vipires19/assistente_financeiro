@@ -15,6 +15,7 @@ Estrutura:
 """
 from .user_repository import UserRepository
 from .audit_log_repository import AuditLogRepository
+from .update_repository import UpdateRepository
 
-__all__ = ['UserRepository', 'AuditLogRepository']
+__all__ = ['UserRepository', 'AuditLogRepository', 'UpdateRepository']
 

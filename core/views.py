@@ -159,6 +159,12 @@ def politica_privacidade_view(request):
     return render(request, 'politica_privacidade.html')
 
 
+@require_GET
+def landing_view(request):
+    """Landing page pública do Leozera (conversão para teste grátis)."""
+    return render(request, 'landing.html')
+
+
 def index_view(request):
     """View principal do dashboard (requer autenticação)."""
     # O middleware já adiciona request.user_mongo se autenticado
@@ -714,6 +720,67 @@ def confirmar_novo_email_view(request, token):
     )
     messages.success(request, 'Email atualizado com sucesso. Use o novo email para fazer login.')
     return redirect('core:configuracoes')
+
+
+@require_GET
+@login_required_mongo
+def novidades_view(request):
+    """
+    Página de novidades do Leozera (changelog).
+    Lista todos os updates ordenados do mais recente para o mais antigo.
+    Acesso: qualquer usuário autenticado.
+    """
+    from core.repositories.update_repository import UpdateRepository
+    repo = UpdateRepository()
+    updates_raw = repo.list_all_ordered()
+    # Serializar para template: _id e data_publicacao
+    updates = []
+    for u in updates_raw:
+        updates.append({
+            'id': str(u['_id']),
+            'titulo': u.get('titulo', ''),
+            'descricao': u.get('descricao', ''),
+            'tipo': u.get('tipo', 'Atualização'),
+            'data_publicacao': u.get('data_publicacao'),
+        })
+    return render(request, 'novidades.html', {
+        'updates': updates,
+        'user_mongo': getattr(request, 'user_mongo', None),
+    })
+
+
+@require_http_methods(["GET", "POST"])
+@login_required_mongo
+def admin_create_update_view(request):
+    """
+    Criação de update (novidade). Apenas usuários com role admin.
+    GET: exibe formulário. POST: salva no MongoDB e redireciona para /novidades/.
+    """
+    from core.repositories.update_repository import UpdateRepository, UPDATE_TIPOS
+    from core.models.user_model import UserModel
+
+    if not getattr(request, 'user_mongo', None):
+        messages.error(request, 'É necessário estar logado.')
+        return redirect('core:login')
+    if not UserModel.is_admin(request.user_mongo):
+        messages.error(request, 'Sem permissão. Apenas administradores podem publicar novidades.')
+        return redirect('core:novidades')
+
+    if request.method == 'POST':
+        titulo = (request.POST.get('titulo') or '').strip()
+        descricao = (request.POST.get('descricao') or '').strip()
+        tipo = (request.POST.get('tipo') or '').strip()
+        if not titulo:
+            messages.error(request, 'O título é obrigatório.')
+            return redirect('core:admin_create_update')
+        if tipo not in UPDATE_TIPOS:
+            tipo = 'Atualização'
+        repo = UpdateRepository()
+        repo.create({'titulo': titulo, 'descricao': descricao, 'tipo': tipo})
+        messages.success(request, 'Novidade publicada com sucesso.')
+        return redirect('core:novidades')
+
+    return render(request, 'gerenciar/update_create.html', {'tipos': UPDATE_TIPOS})
 
 
 def debug_session(request):
