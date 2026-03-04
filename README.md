@@ -180,9 +180,22 @@ A landing page inclui:
 
 # Versionamento
 
-**Versão atual:** `v0.2.0`
+**Versão atual:** `v0.3.0`
 
 ## Versões
+
+### v0.3.0
+
+Principais mudanças:
+
+- interpretação automática de transações e reconhecimento de categorias e contas no agent de IA
+- tool de edição da última transação e classificador de intenção (transação, correção, agenda, relatório, conversa)
+- novo campo `transaction_date` e dashboard usando data efetiva da transação
+- novos gráficos: evolução do saldo, distribuição de despesas, despesas por conta, receita vs despesa
+- página Meu Plano (plano atual, status, próximo vencimento) e cancelamento de assinatura via Mercado Pago
+- workers de verificação de planos vencidos, lembretes e expiração de trial
+- correção da exibição do plano na sidebar e consistência com `assinatura.plano`
+- cards visuais de planos na landing (trial, mensal, anual) com destaque para o anual
 
 ### v0.2.0
 
