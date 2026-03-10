@@ -186,6 +186,20 @@ A landing page inclui:
 
 ## Versões
 
+### v0.4.0
+
+Principais mudanças:
+
+- Implementação do sistema de contas financeiras por usuário
+- Possibilidade de registrar de qual conta saiu cada despesa ou entrada
+- Controle de saldo manual por conta (sem integração bancária)
+- Novo gráfico de despesas por conta no dashboard
+- Melhorias no sistema de registro de transações via WhatsApp
+- Ajustes na classificação automática de categorias
+- Melhorias na estrutura de dados das transações (account_id)
+- Ajustes de UX no dashboard financeiro
+- Preparação da base para análises financeiras mais avançadas
+
 ### v0.3.0
 
 Principais mudanças:
