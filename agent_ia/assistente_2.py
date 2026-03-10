@@ -71,6 +71,42 @@ def normalizar(texto: str) -> str:
     return texto.strip()
 
 
+def gerar_contexto_usuario(user_doc):
+    """
+    Gera um bloco de contexto com contas e categorias do usuário para o prompt do sistema.
+    """
+    if not user_doc:
+        return ""
+
+    contas_usuario = user_doc.get("contas", [])
+    categorias_usuario = user_doc.get("categorias", {})
+
+    nomes_contas = []
+    for conta in contas_usuario:
+        if conta.get("ativa") and conta.get("nome"):
+            nomes_contas.append(conta["nome"])
+
+    nomes_categorias = []
+    for lista in categorias_usuario.values():
+        for categoria in lista:
+            if categoria:
+                nomes_categorias.append(categoria)
+
+    # Remove duplicatas preservando a ordem original cadastrada pelo usuário.
+    nomes_contas = list(dict.fromkeys(nomes_contas))
+    nomes_categorias = list(dict.fromkeys(nomes_categorias))
+
+    linhas_contas = nomes_contas or ["Nenhuma conta cadastrada"]
+    linhas_categorias = nomes_categorias or ["Nenhuma categoria cadastrada"]
+
+    return (
+        "\n\nCONTAS DO USUÁRIO\n" +
+        "\n".join(f"- {nome}" for nome in linhas_contas) +
+        "\n\nCATEGORIAS DISPONÍVEIS\n" +
+        "\n".join(f"- {nome}" for nome in linhas_categorias)
+    )
+
+
 def classificar_intencao(mensagem: str, state: dict) -> str:
     """
     Classifica a intenção da mensagem do usuário para orientar a escolha da tool.
@@ -199,7 +235,7 @@ def check_user(state: dict, config: dict) -> dict:
         # A PARTIR DAQUI: somente usuários NÃO autenticados
         # ======================================================
 
-        thread_id = config["metadata"]["thread_id"]
+        thread_id = config.get("configurable", {}).get("thread_id")
 
         # ------------------------------------------------------
         # CASO 1 — Thread ID NÃO contém telefone (@lid, etc)
@@ -501,6 +537,47 @@ Extraia automaticamente da mensagem do usuário tudo que for possível:
 - descrição: use os termos naturais do usuário (ex. "uber", "combustível", "salário")
 - categoria provável: inferir a partir do contexto (ex. transporte, alimentação, renda)
 - data natural: interpretar "ontem", "hoje", "anteontem", "segunda", "sexta passada", etc. Se nenhuma data for mencionada, assumir HOJE.
+
+EXEMPLOS DE INTERPRETAÇÃO
+
+Exemplo 1
+
+Usuário:
+"Gastei 30 no Uber no C6"
+
+Interpretação correta:
+
+valor: 30
+descricao: uber
+categoria: Transporte
+conta: C6 Bank
+tipo: expense
+
+Exemplo 2
+
+Usuário:
+"18,90 no uber no cartão"
+
+Interpretação correta:
+
+valor: 18.90
+descricao: uber
+categoria: Transporte
+conta: Santander CC
+tipo: expense
+
+Exemplo 3
+
+Usuário:
+"50 no mercado"
+
+Interpretação correta:
+
+valor: 50
+descricao: mercado
+categoria: Supermercado
+conta: perguntar conta
+tipo: expense
 
 Só pergunte ao usuário as informações que REALMENTE estiverem faltando (ex.: conta utilizada, conta que recebeu). NUNCA peça descrição se ela já estiver na frase. NUNCA peça valor se ele já estiver presente.
 
@@ -999,7 +1076,7 @@ def escolher_categoria_ia(descricao: str, tipo: str, categorias_usuario: dict) -
         return "Outros"
 
 @tool("cadastrar_transacao")
-def cadastrar_transacao(valor: float, tipo: str, descricao: str = None, categoria: str = None, account_id: str = None, state: dict = None) -> str:
+def cadastrar_transacao(valor: float, tipo: str, descricao: str = None, categoria: str = None, account_id: str = None, state: dict = None, thread_id: str = None) -> str:
     """
     Cadastra uma transação financeira (gasto ou entrada) no banco de dados.
     
@@ -1118,14 +1195,33 @@ def cadastrar_transacao(valor: float, tipo: str, descricao: str = None, categori
                 account_id = conta_id_final
             # se não encontrou, account_id continua o que veio (pode ser inválido); PARTE 5 valida
 
-        # Inferir conta pela descrição quando ainda não definida (ex.: "paguei no nubank")
+        # Inferir conta pela descrição quando ainda não definida (ex.: "paguei no c6")
         if not account_id and descricao:
-            mensagem_lower = (descricao or "").lower()
+            mensagem_norm = normalizar(descricao or "")
+            contas_correspondentes = []
+            palavras_genericas = {"conta", "cartao", "cartão", "bank", "banco", "cc"}
+
             for conta in contas_ativas:
-                nome_conta = (conta.get("nome") or "").lower()
-                if nome_conta and nome_conta in mensagem_lower:
-                    account_id = conta["id"]
-                    break
+                nome_conta = conta.get("nome") or ""
+                nome_conta_norm = normalizar(nome_conta)
+                if not nome_conta_norm:
+                    continue
+
+                candidatos = {nome_conta_norm}
+                partes_nome = [
+                    parte.strip()
+                    for parte in re.split(r"[^a-z0-9]+", nome_conta_norm)
+                    if parte.strip()
+                ]
+                for parte in partes_nome:
+                    if len(parte) >= 2 and parte not in palavras_genericas:
+                        candidatos.add(parte)
+
+                if any(candidato in mensagem_norm for candidato in candidatos):
+                    contas_correspondentes.append(conta)
+
+            if len(contas_correspondentes) == 1:
+                account_id = contas_correspondentes[0]["id"]
 
         # PARTE 5 — Perguntar conta somente se necessário (account_id deve ser id válido)
         ids_validos = {c.get("id") for c in contas_ativas if c.get("id")}
@@ -1139,6 +1235,16 @@ def cadastrar_transacao(valor: float, tipo: str, descricao: str = None, categori
                 nomes = [c.get("nome") for c in contas_ativas]
                 if state is not None:
                     state["aguardando_conta"] = True
+                if thread_id:
+                    coll_memoria.update_one(
+                        {"thread_id": thread_id},
+                        {
+                            "$set": {
+                                "aguardando_conta": True
+                            }
+                        },
+                        upsert=True
+                    )
                 return f"Qual conta você utilizou? ({', '.join(nomes)})"
         
         # Se descrição não fornecida, retornar mensagem pedindo descrição
@@ -1240,12 +1346,35 @@ def cadastrar_transacao(valor: float, tipo: str, descricao: str = None, categori
         
         # Inserir transação no MongoDB
         try:
+            user_id_obj = ObjectId(user_id) if not isinstance(user_id, ObjectId) else user_id
+            existing = coll_transacoes.find_one({
+                "user_id": user_id_obj,
+                "value": float(valor),
+                "description": descricao.strip(),
+                "created_at": {
+                    "$gte": datetime.now(pytz.timezone("America/Sao_Paulo")) - timedelta(seconds=60)
+                }
+            })
+            if existing:
+                return "Essa transação parece já ter sido registrada agora. Se precisar corrigir algo posso editar."
+
             result = coll_transacoes.insert_one(transacao)
             transacao_id = result.inserted_id
             ultima_transacao_id = str(transacao_id)
             if state is not None:
                 state["ultima_transacao_id"] = ultima_transacao_id
                 state.pop("aguardando_conta", None)  # limpar flag após sucesso
+            if thread_id:
+                coll_memoria.update_one(
+                    {"thread_id": thread_id},
+                    {
+                        "$set": {
+                            "ultima_transacao_id": ultima_transacao_id,
+                            "aguardando_conta": False
+                        }
+                    },
+                    upsert=True
+                )
             print(f"[CADASTRAR_TRANSACAO] Transação cadastrada com sucesso: {transacao_id}")
             
             # Mensagem de confirmação
@@ -1355,12 +1484,20 @@ def editar_ultima_transacao_tool(
     description: str = None,
     transaction_date: str = None,
     account_id: str = None,
+    thread_id: str = None,
 ) -> str:
     """
     Edita a última transação registrada. Use quando o usuário corrigir algo logo após registrar
     (ex.: "foi ontem", "na verdade foi 120", "era combustível").
     Parâmetros: value, category, description, transaction_date, account_id (apenas os que mudaram).
     """
+    if state and not state.get("ultima_transacao_id"):
+        if thread_id:
+            mem = coll_memoria.find_one({"thread_id": thread_id})
+            if mem and mem.get("ultima_transacao_id"):
+                ultima_transacao_id = mem["ultima_transacao_id"]
+                state["ultima_transacao_id"] = ultima_transacao_id
+
     if not state or not state.get("user_info") or not state.get("ultima_transacao_id"):
         return "Não encontrei uma transação recente para corrigir."
     user_id = state["user_info"].get("user_id") or state["user_info"].get("_id")
@@ -2657,7 +2794,7 @@ class AgentAssistente:
                 )
 
             # Carregar categorias e contas do usuário + verificar onboarding inicial
-            contexto_categorias_contas = ""
+            contexto_usuario = ""
             onboarding_text = ""
             user_doc = None
             if not bloqueado and user_info.get("status") == "ativo":
@@ -2692,19 +2829,7 @@ class AgentAssistente:
                                 )
                             except Exception:
                                 pass
-                        categorias_usuario = user_doc.get("categorias", {})
-                        contas_usuario = user_doc.get("contas", [])
-                        todas_categorias = []
-                        for lista in categorias_usuario.values():
-                            todas_categorias.extend(lista)
-                        contas_ativas = [c for c in contas_usuario if c.get("ativa")]
-                        nomes_contas = [c.get("nome", "") for c in contas_ativas if c.get("nome")]
-                        contexto_categorias_contas = (
-                            "\n\n📌 CATEGORIAS E CONTAS DESTE USUÁRIO (use para interpretar mensagens e ao perguntar qual conta):"
-                            f"\n- Categorias disponíveis: {', '.join(todas_categorias) if todas_categorias else 'Nenhuma cadastrada'}"
-                            f"\n- Contas ativas (nomes para reconhecer na frase ou listar ao perguntar): {', '.join(nomes_contas) if nomes_contas else 'Nenhuma cadastrada'}"
-                            "\n- Ao perguntar qual conta foi utilizada, liste as opções entre parênteses. Reconheça menções à conta na mensagem (ex.: 'no c6', 'paguei no santander')."
-                        )
+                        contexto_usuario = gerar_contexto_usuario(user_doc)
 
             # Detecção de intenção da última mensagem do usuário (antes da decisão de tool)
             intent_instrucao = ""
@@ -2737,7 +2862,7 @@ class AgentAssistente:
                     f"\n- Status assinatura: {status_assinatura}"
                     f"{instrucao}"
                     f"{sem_plano_instrucao}"
-                    f"{contexto_categorias_contas}"
+                    f"{contexto_usuario}"
                     f"{intent_instrucao}"
                 )
             )
@@ -2764,7 +2889,7 @@ class AgentAssistente:
         # --------------------------------
         # Tool node seguro
         # --------------------------------
-        def safe_tool_node(state: State) -> State:
+        def safe_tool_node(state: State, config: RunnableConfig) -> State:
             from langchain_core.messages import ToolMessage
 
             messages = state.get("messages", [])
@@ -2807,6 +2932,8 @@ class AgentAssistente:
                 try:
                     if "state" in tool_func.func.__code__.co_varnames:
                         call["args"]["state"] = safe_state
+                    if "thread_id" in tool_func.func.__code__.co_varnames:
+                        call["args"]["thread_id"] = config.get("configurable", {}).get("thread_id")
 
                     result = tool_func.invoke(call["args"])
 

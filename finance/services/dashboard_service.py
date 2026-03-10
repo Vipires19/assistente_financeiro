@@ -581,7 +581,8 @@ class DashboardService:
                 'date': date_str,
                 'time': time_str,
                 'created_at': data_transacao.isoformat() if isinstance(data_transacao, datetime) else str(data_transacao) if data_transacao else '',
-                'hour': trans.get('hour', None)
+                'hour': trans.get('hour', None),
+                'account_id': str(trans['account_id']) if trans.get('account_id') else None,
             })
         
         return {

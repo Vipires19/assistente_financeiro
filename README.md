@@ -20,15 +20,7 @@ A IA interpreta e registra a transação automaticamente.
 
 ## Dashboard financeiro
 
-Interface web onde o usuário pode visualizar:
-
-- Total de gastos
-- Total de receitas
-- Saldo do período
-- Categoria com maior gasto
-- Dia com maior gasto
-- Horário com maior gasto
-- Gráficos financeiros
+Interface web onde o usuário pode visualizar total de gastos, receitas, saldo e gráficos. O sistema oferece análise de comportamento financeiro, métricas visuais de saúde financeira, alertas automáticos de gastos e insights gerados por IA.
 
 ## Insights com IA
 
@@ -102,6 +94,16 @@ Esses tickets são enviados por email.
 - Gastos por horário
 - Distribuição de despesas
 - Despesas por conta
+
+### 📊 Dashboard Inteligente
+- Taxa de Economia (percentual de renda que está sendo poupada)
+- Saúde Financeira (barra visual baseada na taxa de economia)
+- Categoria com Maior Gasto com percentual e barra visual
+- Alerta automático quando uma categoria ultrapassa 30% das despesas
+- Conta com Mais Gastos (identifica a conta que concentra mais despesas)
+- Tendência de Gastos vs Mês Anterior
+- Velocidade do Dinheiro (quantos dias a renda sustenta o padrão atual de gastos)
+- Análise Financeira com IA (Diagnóstico, Impacto, Projeção e Recomendação)
 
 ### Sistema de Assinaturas
 - Planos recorrentes via Mercado Pago
@@ -180,7 +182,7 @@ A landing page inclui:
 
 # Versionamento
 
-**Versão atual:** `v0.3.0`
+**Versão atual:** `v0.4.0`
 
 ## Versões
 

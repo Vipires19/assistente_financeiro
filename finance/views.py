@@ -96,12 +96,12 @@ def dashboard_api_view(request):
 
 def insights_api_view(request):
     """
-    API endpoint para insights financeiros gerados por IA.
+    API endpoint para insights financeiros gerados por IA (modelo híbrido).
 
     GET /finance/api/insights/?period=mensal
 
-    Reaproveita a lógica do dashboard para obter dados consolidados,
-    envia para OpenAI (gpt-4o-mini) e retorna insight, alerta e recomendação em JSON.
+    Obtém dados do dashboard, envia para o serviço de insights (que calcula padrões
+    no backend e usa a IA só para interpretar) e retorna diagnóstico, impacto, projeção e recomendação.
     SEGURANÇA: user_id é extraído do request.user_mongo (garantido pelo middleware).
     """
     if not hasattr(request, 'user_mongo') or not request.user_mongo:
@@ -120,8 +120,7 @@ def insights_api_view(request):
             'message': str(e)
         }, status=500)
 
-    # Extrair apenas dados consolidados para o prompt (valores serializáveis para JSON)
-    def _serialize(obj):
+    def _serialize_for_insights(obj):
         if obj is None:
             return None
         if isinstance(obj, (int, float, str, bool)):
@@ -129,83 +128,44 @@ def insights_api_view(request):
         if isinstance(obj, datetime):
             return obj.isoformat()
         if isinstance(obj, dict):
-            return {k: _serialize(v) for k, v in obj.items()}
+            return {k: _serialize_for_insights(v) for k, v in obj.items()}
         if isinstance(obj, (list, tuple)):
-            return [_serialize(v) for v in obj]
+            return [_serialize_for_insights(v) for v in obj]
         return str(obj)
 
-    raw = {
+    # Montar payload para o serviço de insights (com transações e contas para cálculos)
+    transactions = dashboard_data.get('transactions') or []
+    transactions_serial = [
+        {
+            'type': t.get('type'),
+            'value': t.get('value'),
+            'account_id': str(t['account_id']) if t.get('account_id') is not None else None,
+        }
+        for t in transactions
+    ]
+    accounts = dashboard_data.get('accounts') or []
+    accounts_serial = [
+        {'id': str(a.get('id') or a.get('_id', '')), 'name': a.get('name') or a.get('nome', '')}
+        for a in accounts
+    ]
+    category_highest = dashboard_data.get('category_with_highest_expense')
+    if category_highest and isinstance(category_highest, dict):
+        category_highest = _serialize_for_insights(category_highest)
+
+    payload = {
         'total_income': dashboard_data.get('total_income', 0),
         'total_expenses': dashboard_data.get('total_expenses', 0),
         'balance': dashboard_data.get('balance', 0),
-        'day_with_highest_expense': dashboard_data.get('day_with_highest_expense'),
-        'category_with_highest_expense': dashboard_data.get('category_with_highest_expense'),
-        'hour_with_highest_expense': dashboard_data.get('hour_with_highest_expense'),
+        'day_with_highest_expense': _serialize_for_insights(dashboard_data.get('day_with_highest_expense')),
+        'category_with_highest_expense': category_highest,
+        'hour_with_highest_expense': _serialize_for_insights(dashboard_data.get('hour_with_highest_expense')),
+        'transactions': transactions_serial,
+        'accounts': accounts_serial,
     }
-    payload = _serialize(raw)
-    dados_json = json.dumps(payload, ensure_ascii=False, indent=2)
 
-    prompt = (
-        "Você é um assistente financeiro inteligente.\n"
-        "Analise os dados abaixo e gere:\n\n"
-        "- Um insight estratégico\n"
-        "- Um alerta (se houver risco)\n"
-        "- Uma recomendação prática\n\n"
-        "Responda em JSON no formato:\n"
-        '{"insight": "...", "alerta": "...", "recomendacao": "..."}\n\n'
-        "Dados:\n"
-        f"{dados_json}"
-    )
-    
-    api_key = os.getenv('OPENAI_API_KEY')
-    if not api_key:
-        logger.warning("OPENAI_API_KEY não configurada; retornando fallback para insights.")
-        fallback = {
-            'insight': 'Configure OPENAI_API_KEY no .env para receber análises automáticas.',
-            'alerta': '',
-            'recomendacao': 'Adicione OPENAI_API_KEY nas variáveis de ambiente e chame o endpoint novamente.',
-        }
-        return JsonResponse(fallback, json_dumps_params={'ensure_ascii': False})
-
-    try:
-        from openai import OpenAI
-        client = OpenAI(api_key=api_key)
-        response = client.chat.completions.create(
-            model='gpt-4o-mini',
-            messages=[{'role': 'user', 'content': prompt}],
-            temperature=0.5,
-        )
-        content = (response.choices[0].message.content or '').strip()
-    except Exception as e:
-        logger.exception("Erro ao chamar OpenAI para insights: %s", e)
-        fallback = {
-            'insight': 'Não foi possível gerar o insight no momento. Tente novamente mais tarde.',
-            'alerta': '',
-            'recomendacao': 'Verifique sua conexão e a configuração da OPENAI_API_KEY.',
-        }
-        return JsonResponse(fallback, json_dumps_params={'ensure_ascii': False})
-
-    # Parse da resposta como JSON
-    try:
-        if content.startswith('```'):
-            content = content.split('```')[1]
-            if content.startswith('json'):
-                content = content[4:].strip()
-        parsed = json.loads(content)
-        result = {
-            'insight': parsed.get('insight', ''),
-            'alerta': parsed.get('alerta', ''),
-            'recomendacao': parsed.get('recomendacao', ''),
-        }
-    except (json.JSONDecodeError, TypeError) as e:
-        logger.warning("Resposta da OpenAI não é JSON válido: %s", e)
-        result = {
-            'insight': 'Análise gerada com sucesso, mas o formato não pôde ser processado.',
-            'alerta': '',
-            'recomendacao': 'Tente novamente ou altere o período para obter um novo insight.',
-        }
-
-    return JsonResponse(result, json_dumps_params={'ensure_ascii': False})
+    from .services.ai_insights import gerar_insights_financeiros
+    insights = gerar_insights_financeiros(payload)
+    return JsonResponse(insights, json_dumps_params={'ensure_ascii': False})
 
 
 @login_required_mongo

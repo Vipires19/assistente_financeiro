@@ -130,6 +130,94 @@
                 </div>
             </div>
 
+            <!-- Card: Taxa de Economia -->
+            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Taxa de Economia</p>
+                        <p class="text-2xl font-bold mt-1" id="savingsRate">
+                            0%
+                        </p>
+                    </div>
+                    <div class="bg-blue-100 rounded-full p-3">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V6m0 12v-2"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Saúde Financeira -->
+            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <p class="text-sm font-medium text-gray-600 mb-2">Saúde Financeira</p>
+
+                <div class="w-full bg-gray-200 rounded-full h-3 mb-2">
+                    <div id="financialHealthBar"
+                         class="h-3 rounded-full"
+                         style="width:0%">
+                    </div>
+                </div>
+
+                <p id="financialHealthText" class="text-sm text-gray-600">
+                    -
+                </p>
+            </div>
+
+            <!-- Card: Gastos vs mês anterior -->
+            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">
+                            Gastos vs mês anterior
+                        </p>
+                        <p class="text-2xl font-bold mt-1" id="expenseTrend">
+                            -
+                        </p>
+                    </div>
+
+                    <div class="bg-orange-100 rounded-full p-3">
+                        <svg class="w-6 h-6 text-orange-600"
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  stroke-width="2"
+                                  d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Velocidade do dinheiro -->
+            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">
+                            Velocidade do dinheiro
+                        </p>
+
+                        <p class="text-2xl font-bold mt-1" id="moneySpeed">
+                            -
+                        </p>
+                    </div>
+
+                    <div class="bg-teal-100 rounded-full p-3">
+                        <svg class="w-6 h-6 text-teal-600"
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24">
+
+                            <path stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  stroke-width="2"
+                                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V6m0 12v-2"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
             <!-- Card: Dia com Maior Gasto -->
             <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                 <div class="flex items-center justify-between">
@@ -155,10 +243,37 @@
                         <p class="text-lg font-semibold text-gray-900 mt-1" id="categoryHighestExpense">
                             -
                         </p>
+                        <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                            <div id="categoryExpenseBar"
+                                 class="h-2 rounded-full bg-purple-500"
+                                 style="width:0%">
+                            </div>
+                        </div>
+                        <p id="categoryAlert"
+                           class="text-xs text-red-600 mt-2 hidden">
+                        </p>
                     </div>
                     <div class="bg-purple-100 rounded-full p-3">
                         <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Conta com Mais Gastos -->
+            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Conta com Mais Gastos</p>
+                        <p class="text-lg font-semibold text-gray-900 mt-1" id="topAccount">
+                            -
+                        </p>
+                    </div>
+                    <div class="bg-indigo-100 rounded-full p-3">
+                        <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 10h18M7 15h1m4 0h1m-9 4h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                         </svg>
                     </div>
                 </div>
@@ -182,11 +297,16 @@
             </div>
         </div>
 
-        <div class="dashboard-section bg-white border border-primary-200 rounded-xl p-4 shadow-sm mb-6">
-            <h3 class="font-semibold text-primary-600">Insight Inteligente 🤖</h3>
-            <p id="aiInsightText" class="text-sm mt-2 text-gray-700">
-                Em breve você verá análises automáticas baseadas no seu comportamento financeiro.
-            </p>
+        <div class="dashboard-section bg-white border border-blue-200 rounded-xl p-5 shadow-sm mb-6">
+            <h3 class="font-semibold text-blue-600 text-lg mb-3">
+                🧠 Análise Financeira do Leozera
+            </h3>
+
+            <div id="aiInsightText" class="space-y-3 text-sm text-gray-700">
+                <p class="text-gray-500">
+                    Gerando análise financeira...
+                </p>
+            </div>
         </div>
 
         <!-- Top Gastos do Período -->
@@ -494,6 +614,77 @@ async function loadDashboardData() {
         balanceEl.textContent = formatCurrency(balance);
         balanceEl.className = `text-2xl font-bold mt-1 ${balance >= 0 ? 'text-green-600' : 'text-red-600'}`;
 
+        // Taxa de Economia
+        const income = data.total_income || 0;
+        const expenses = data.total_expenses || 0;
+        let savingsRate = 0;
+        if (income > 0) {
+            savingsRate = ((income - expenses) / income) * 100;
+        }
+        const savingsRateEl = document.getElementById('savingsRate');
+        if (savingsRateEl) {
+            savingsRateEl.textContent = savingsRate.toFixed(1) + "%";
+            if (savingsRate >= 20) {
+                savingsRateEl.className = "text-2xl font-bold mt-1 text-green-600";
+            } else if (savingsRate >= 10) {
+                savingsRateEl.className = "text-2xl font-bold mt-1 text-yellow-600";
+            } else {
+                savingsRateEl.className = "text-2xl font-bold mt-1 text-red-600";
+            }
+        }
+
+        const healthBar = document.getElementById('financialHealthBar');
+        const healthText = document.getElementById('financialHealthText');
+        if (healthBar && healthText) {
+            let percent = Math.max(0, Math.min(100, savingsRate));
+            healthBar.style.width = percent + "%";
+            if (savingsRate >= 20) {
+                healthBar.className = "h-3 rounded-full bg-green-500";
+                healthText.textContent = "Saúde financeira excelente";
+            } else if (savingsRate >= 10) {
+                healthBar.className = "h-3 rounded-full bg-yellow-500";
+                healthText.textContent = "Saúde financeira moderada";
+            } else {
+                healthBar.className = "h-3 rounded-full bg-red-500";
+                healthText.textContent = "Saúde financeira em risco";
+            }
+        }
+
+        const trendEl = document.getElementById("expenseTrend");
+        if (trendEl) {
+            if (data.previous_total_expenses != null && data.previous_total_expenses !== undefined) {
+                const prev = data.previous_total_expenses || 0;
+                const curr = data.total_expenses || 0;
+                let change = 0;
+                if (prev > 0) {
+                    change = ((curr - prev) / prev) * 100;
+                }
+                const arrow = change > 0 ? "↑" : "↓";
+                trendEl.textContent = `${arrow} ${Math.abs(change).toFixed(1)}%`;
+                if (change > 0) {
+                    trendEl.className = "text-2xl font-bold mt-1 text-red-600";
+                } else {
+                    trendEl.className = "text-2xl font-bold mt-1 text-green-600";
+                }
+            } else {
+                trendEl.textContent = "-";
+            }
+        }
+
+        const moneySpeedEl = document.getElementById("moneySpeed");
+        if (moneySpeedEl) {
+            const income = data.total_income || 0;
+            const expenses = data.total_expenses || 0;
+            const days = 30;
+            if (income > 0 && expenses > 0) {
+                const dailyExpense = expenses / days;
+                const daysSupported = income / dailyExpense;
+                moneySpeedEl.textContent = Math.floor(daysSupported) + " dias";
+            } else {
+                moneySpeedEl.textContent = "-";
+            }
+        }
+
         // Dia com maior gasto
         if (data.day_with_highest_expense) {
             const day = data.day_with_highest_expense;
@@ -504,12 +695,70 @@ async function loadDashboardData() {
         }
 
         // Categoria com maior gasto
+        const categoryBar = document.getElementById('categoryExpenseBar');
         if (data.category_with_highest_expense) {
             const cat = data.category_with_highest_expense;
-            document.getElementById('categoryHighestExpense').textContent = 
-                `${cat.category} - ${formatCurrency(cat.total)}`;
+            const totalExpenses = data.total_expenses || 0;
+            let percent = 0;
+            if (totalExpenses > 0) {
+                percent = (cat.total / totalExpenses) * 100;
+            }
+            document.getElementById('categoryHighestExpense').textContent =
+                `${cat.category} - ${formatCurrency(cat.total)} (${percent.toFixed(1)}%)`;
+            if (categoryBar) {
+                categoryBar.style.width = percent + "%";
+            }
+            const alertEl = document.getElementById('categoryAlert');
+            if (alertEl) {
+                if (percent >= 30) {
+                    alertEl.textContent =
+                        "⚠ Atenção: essa categoria representa uma parcela muito alta dos seus gastos.";
+                    alertEl.classList.remove("hidden");
+                } else {
+                    alertEl.classList.add("hidden");
+                }
+            }
         } else {
             document.getElementById('categoryHighestExpense').textContent = 'N/A';
+            if (categoryBar) {
+                categoryBar.style.width = "0%";
+            }
+            const alertEl = document.getElementById('categoryAlert');
+            if (alertEl) {
+                alertEl.classList.add("hidden");
+            }
+        }
+
+        // Conta com mais gastos (usa top_expense_accounts se existir, senão calcula das transações)
+        const topAccountEl = document.getElementById('topAccount');
+        if (topAccountEl) {
+            if (data.top_expense_accounts && data.top_expense_accounts[0]) {
+                const account = data.top_expense_accounts[0];
+                topAccountEl.textContent = `${account.name} (${(account.percent || 0).toFixed(1)}%)`;
+            } else if (data.transactions && data.transactions.length > 0 && (data.total_expenses || 0) > 0) {
+                const byAccount = {};
+                data.transactions.forEach(t => {
+                    if (t.type !== 'expense') return;
+                    const key = t.account_id != null ? String(t.account_id) : '__sem_conta__';
+                    byAccount[key] = (byAccount[key] || 0) + Number(t.value || 0);
+                });
+                const entries = Object.entries(byAccount);
+                if (entries.length > 0) {
+                    const [topId, topSum] = entries.reduce((best, cur) => cur[1] > best[1] ? cur : best);
+                    const totalExpenses = data.total_expenses || 0;
+                    const percent = totalExpenses > 0 ? (topSum / totalExpenses) * 100 : 0;
+                    let name = 'Conta não identificada';
+                    if (topId !== '__sem_conta__' && data.accounts && data.accounts.length > 0) {
+                        const acc = data.accounts.find(a => String(a.id || a._id) === topId);
+                        if (acc) name = acc.name || acc.nome || name;
+                    }
+                    topAccountEl.textContent = `${name} (${percent.toFixed(1)}%)`;
+                } else {
+                    topAccountEl.textContent = 'N/A';
+                }
+            } else {
+                topAccountEl.textContent = 'N/A';
+            }
         }
 
         // Horário com maior gasto
@@ -826,13 +1075,15 @@ async function loadCharts() {
                 ? Number(chartsData.income_vs_expense.resultado) : 0;
             const centerEl = document.getElementById('incomeVsExpenseCenterText');
             if (centerEl) {
-                if (resultado > 0) {
-                    centerEl.innerHTML = '<div class="text-green-600 font-bold text-lg">+' + formatCurrency(resultado) + '</div><div class="text-xs text-gray-500">Resultado Positivo</div>';
-                } else if (resultado < 0) {
-                    centerEl.innerHTML = '<div class="text-red-600 font-bold text-lg">' + formatCurrency(resultado) + '</div><div class="text-xs text-gray-500">Resultado Negativo</div>';
-                } else {
-                    centerEl.innerHTML = '<div class="text-gray-600 font-bold text-lg">R$ 0,00</div><div class="text-xs text-gray-500">Equilibrado</div>';
-                }
+                centerEl.innerHTML = `
+<div class="flex flex-col items-center justify-center text-center">
+    <div class="${resultado >= 0 ? 'text-green-600' : 'text-red-600'} font-bold text-lg">
+        ${resultado >= 0 ? '+' : ''}${formatCurrency(resultado)}
+    </div>
+    <div class="text-xs text-gray-500 mt-1">
+        ${resultado > 0 ? 'Resultado Positivo' : resultado < 0 ? 'Resultado Negativo' : 'Equilibrado'}
+    </div>
+</div>`;
             }
         }
 
@@ -1081,13 +1332,14 @@ function updateTransactionsTable(data) {
             dateStr = formatDate(trans.date);
             timeStr = trans.time || '-';
         } else if (trans.created_at) {
-            // Se tem created_at, formata data e hora
+            // Se tem created_at (UTC do backend), exibe horário no fuso do Brasil
             const date = new Date(trans.created_at);
             dateStr = formatDate(date);
-            timeStr = date.toLocaleTimeString('pt-BR', { 
-                hour: '2-digit', 
+            timeStr = date.toLocaleTimeString('pt-BR', {
+                hour: '2-digit',
                 minute: '2-digit',
-                hour12: false 
+                hour12: false,
+                timeZone: 'America/Sao_Paulo'
             });
         }
         
@@ -1188,10 +1440,26 @@ async function loadInsights() {
         const data = await response.json();
 
         document.getElementById('aiInsightText').innerHTML = `
-            <strong>Insight:</strong> ${data.insight}<br><br>
-            <strong>Alerta:</strong> ${data.alerta || "Nenhum alerta crítico no momento."}<br><br>
-            <strong>Recomendação:</strong> ${data.recomendacao}
-        `;
+<div>
+    <span class="font-semibold text-gray-800">Diagnóstico</span>
+    <p class="text-gray-600">${data.diagnostico || '-'}</p>
+</div>
+
+<div>
+    <span class="font-semibold text-gray-800">Impacto</span>
+    <p class="text-gray-600">${data.impacto || '-'}</p>
+</div>
+
+<div>
+    <span class="font-semibold text-gray-800">Projeção</span>
+    <p class="text-gray-600">${data.projecao || '-'}</p>
+</div>
+
+<div>
+    <span class="font-semibold text-gray-800">Recomendação</span>
+    <p class="text-gray-600">${data.recomendacao || '-'}</p>
+</div>
+`;
     } catch (error) {
         console.error("Erro ao carregar insights:", error);
     }
