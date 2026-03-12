@@ -633,6 +633,51 @@
         .topbar button i{
         color:inherit !important;
         }
+
+        /* ============================= */
+        /* AJUSTE PERFIL TOPBAR MOBILE */
+        /* ============================= */
+
+        @media (max-width:768px){
+
+        /* container do usuário */
+        .topbar .user-profile{
+        display:flex;
+        align-items:center;
+        gap:8px;
+        max-width:160px;
+        padding:4px 8px;
+        background:transparent;
+        border-radius:8px;
+        background:rgba(255,255,255,0.05);
+        border:1px solid rgba(255,255,255,0.08);
+        backdrop-filter:blur(8px);
+        }
+
+        /* avatar */
+        .topbar .user-profile img{
+        width:28px;
+        height:28px;
+        border-radius:50%;
+        object-fit:cover;
+        }
+
+        /* nome */
+        .topbar .user-profile span{
+        font-size:13px;
+        color:var(--text-primary);
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        max-width:90px;
+        }
+
+        /* dark mode */
+        body.dark-mode .topbar .user-profile span{
+        color:#f1f5f9;
+        }
+
+        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
