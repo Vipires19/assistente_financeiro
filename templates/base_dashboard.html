@@ -501,6 +501,138 @@
                 overflow-y: auto;
             }
         }
+
+        /* ============================= */
+        /* PATCH MOBILE LEOZERA */
+        /* ============================= */
+
+        @media (max-width:768px){
+
+        /* reduzir padding geral */
+        .content-area{
+        padding:1rem !important;
+        }
+
+        /* sidebar ocupar largura correta */
+        .sidebar{
+        width:85%;
+        max-width:300px;
+        }
+
+        /* corrigir botão menu */
+        .btn-sidebar-toggle,
+        .topbar button,
+        .topbar i{
+        color:var(--text-primary) !important;
+        font-size:1.4rem;
+        }
+
+        /* garantir contraste dark mode */
+        body.dark-mode .btn-sidebar-toggle,
+        body.dark-mode .topbar button,
+        body.dark-mode .topbar i{
+        color:#f1f5f9 !important;
+        }
+
+        /* cards mais compactos */
+        .card-dashboard{
+        padding:1rem !important;
+        }
+
+        /* números financeiros menores */
+        #totalExpenses,
+        #totalIncome,
+        #balance,
+        #savingsRate{
+        font-size:20px !important;
+        }
+
+        /* saldo principal */
+        #saldoTotal{
+        font-size:28px !important;
+        }
+
+        /* gráficos menores */
+        canvas{
+        max-height:220px !important;
+        }
+
+        /* grids sempre coluna */
+        .dashboard-section.grid{
+        grid-template-columns:1fr !important;
+        gap:1rem !important;
+        }
+
+        /* botões mais fáceis de tocar */
+        button{
+        min-height:42px;
+        }
+
+        }
+
+        @media (max-width:768px){
+
+        .fc-toolbar{
+        flex-direction:column;
+        gap:8px;
+        }
+
+        .fc-toolbar-title{
+        font-size:0.9rem;
+        }
+
+        .fc-event{
+        font-size:11px;
+        }
+
+        #agenda-calendar{
+        padding:6px;
+        }
+
+        }
+
+        /* ============================= */
+        /* OVERRIDE TAILWIND MOBILE */
+        /* ============================= */
+
+        @media (max-width:768px){
+
+        /* container principal do dashboard */
+        .dashboard-finance-content .max-w-7xl{
+        padding-left:1rem !important;
+        padding-right:1rem !important;
+        }
+
+        /* cards do resumo financeiro */
+        .dashboard-finance-content .grid{
+        grid-template-columns:1fr !important;
+        }
+
+        /* métricas */
+        .dashboard-finance-content .text-2xl{
+        font-size:18px !important;
+        }
+
+        /* títulos */
+        .dashboard-finance-content h3{
+        font-size:16px !important;
+        }
+
+        /* gráficos */
+        .dashboard-finance-content canvas{
+        height:200px !important;
+        }
+
+        /* tabelas */
+        .dashboard-finance-content table{
+        font-size:12px !important;
+        }
+
+        }
+
+        .topbar button i{
+        color:inherit !important;
+        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>

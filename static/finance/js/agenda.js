@@ -20,7 +20,8 @@ const calendario = {
 
         const viewBtns = document.querySelectorAll('.agenda-view-btn');
         const activeBtn = document.querySelector('.agenda-view-btn.active');
-        this.viewType = (activeBtn && activeBtn.dataset.view) || 'dayGridMonth';
+        const defaultView = window.innerWidth < 768 ? 'timeGridDay' : 'dayGridMonth';
+        this.viewType = (activeBtn && activeBtn.dataset.view) || defaultView;
 
         // Controle único: sem toolbar do FullCalendar; apenas botões custom (Dia, Semana, Mês, + Novo)
         const calendarConfig = {
