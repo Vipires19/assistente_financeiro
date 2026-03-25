@@ -24,6 +24,7 @@ from finance.models import FinancialAccount
 from django.contrib.auth import get_user_model
 from core.decorators import audit_log
 from core.decorators.auth import login_required_mongo
+from finance.repositories.despesa_fixa_repository import DespesaFixaRepository
 from datetime import datetime, timedelta
 from dotenv import load_dotenv,find_dotenv
 load_dotenv(find_dotenv())
@@ -98,10 +99,11 @@ def insights_api_view(request):
     """
     API endpoint para insights financeiros gerados por IA (modelo híbrido).
 
-    GET /finance/api/insights/?period=mensal
+    GET /finance/api/insights/?period=mensal|geral|...
 
     Obtém dados do dashboard, envia para o serviço de insights (que calcula padrões
-    no backend e usa a IA só para interpretar) e retorna diagnóstico, impacto, projeção e recomendação.
+    no backend e usa a IA só para interpretar). Com period=geral, a janela é longa (~24 meses)
+    e o prompt foca comportamento e hábitos (não “este mês”).
     SEGURANÇA: user_id é extraído do request.user_mongo (garantido pelo middleware).
     """
     if not hasattr(request, 'user_mongo') or not request.user_mongo:
@@ -110,9 +112,23 @@ def insights_api_view(request):
     user_id = str(request.user_mongo['_id'])
     period = request.GET.get('period', 'mensal')
 
+    def _q_int(name):
+        raw = request.GET.get(name)
+        if raw is None or raw == '':
+            return None
+        try:
+            return int(raw)
+        except (ValueError, TypeError):
+            return None
+
+    month = _q_int('month')
+    year = _q_int('year')
+
     try:
         service = DashboardService()
-        dashboard_data = service.get_dashboard_data(user_id=user_id, period=period)
+        dashboard_data = service.get_dashboard_data(
+            user_id=user_id, period=period, month=month, year=year
+        )
     except Exception as e:
         logger.exception("Erro ao obter dados do dashboard para insights: %s", e)
         return JsonResponse({
@@ -152,6 +168,22 @@ def insights_api_view(request):
     if category_highest and isinstance(category_highest, dict):
         category_highest = _serialize_for_insights(category_highest)
 
+    total_exp = float(dashboard_data.get('total_expenses') or 0)
+    top_cats_raw = dashboard_data.get('top_expense_categories') or []
+    top_expense_categories_serial = []
+    for c in top_cats_raw:
+        if not isinstance(c, dict):
+            continue
+        cat_total = float(c.get('total') or 0)
+        top_expense_categories_serial.append({
+            'category': c.get('category'),
+            'total': cat_total,
+            'percentual_sobre_despesas': round(cat_total / total_exp, 4) if total_exp else 0.0,
+        })
+
+    period_norm = (period or '').strip().lower()
+    insight_modo = 'geral' if period_norm == 'geral' else 'periodo'
+
     payload = {
         'total_income': dashboard_data.get('total_income', 0),
         'total_expenses': dashboard_data.get('total_expenses', 0),
@@ -161,6 +193,8 @@ def insights_api_view(request):
         'hour_with_highest_expense': _serialize_for_insights(dashboard_data.get('hour_with_highest_expense')),
         'transactions': transactions_serial,
         'accounts': accounts_serial,
+        'insight_modo': insight_modo,
+        'top_expense_categories': top_expense_categories_serial,
     }
 
     from .services.ai_insights import gerar_insights_financeiros
@@ -423,6 +457,132 @@ def categorias_view(request):
     })
 
 
+def _parse_valor_br(val: str) -> float:
+    """Converte string de valor (pt-BR ou número com ponto) em float."""
+    s = (val or "").strip()
+    if not s:
+        return 0.0
+    if "," in s:
+        s = s.replace(".", "").replace(",", ".")
+    return float(s)
+
+
+def _fmt_brl(val) -> str:
+    try:
+        v = float(val)
+    except (TypeError, ValueError):
+        v = 0.0
+    neg = v < 0
+    v = abs(v)
+    s = f"{v:.2f}"
+    intp, frac = s.split(".")
+    parts = []
+    while intp:
+        parts.insert(0, intp[-3:])
+        intp = intp[:-3]
+    int_fmt = ".".join(parts)
+    prefix = "-" if neg else ""
+    return f"{prefix}R$ {int_fmt},{frac}"
+
+
+@login_required_mongo
+def despesas_fixas_view(request):
+    """Lista e CRUD de despesas fixas (recorrentes) do usuário."""
+    if not hasattr(request, "user_mongo") or not request.user_mongo:
+        return redirect("/login/")
+
+    user_id = str(request.user_mongo["_id"])
+    repo = DespesaFixaRepository()
+
+    if request.method == "POST":
+        action = request.POST.get("action", "add")
+        if action == "add":
+            try:
+                dia = int(request.POST.get("dia_vencimento", "1"))
+            except (TypeError, ValueError):
+                messages.error(request, "Dia de vencimento inválido.")
+                return redirect("finance:despesas-fixas")
+            try:
+                valor_parsed = _parse_valor_br(request.POST.get("valor", "0"))
+            except ValueError:
+                messages.error(request, "Valor inválido.")
+                return redirect("finance:despesas-fixas")
+            try:
+                repo.create(
+                    {
+                        "user_id": user_id,
+                        "nome": request.POST.get("nome", ""),
+                        "valor": valor_parsed,
+                        "dia_vencimento": dia,
+                    }
+                )
+                messages.success(request, "Despesa fixa adicionada com sucesso!")
+            except ValueError as e:
+                messages.error(request, str(e))
+        elif action == "edit":
+            despesa_id = request.POST.get("despesa_id", "").strip()
+            try:
+                dia = int(request.POST.get("dia_vencimento", "1"))
+            except (TypeError, ValueError):
+                messages.error(request, "Dia de vencimento inválido.")
+                return redirect("finance:despesas-fixas")
+            try:
+                valor_parsed = _parse_valor_br(request.POST.get("valor", "0"))
+            except ValueError:
+                messages.error(request, "Valor inválido.")
+                return redirect("finance:despesas-fixas")
+            try:
+                ok = repo.update_by_user(
+                    despesa_id,
+                    user_id,
+                    nome=request.POST.get("nome", ""),
+                    valor=valor_parsed,
+                    dia_vencimento=dia,
+                )
+                if ok:
+                    messages.success(request, "Despesa fixa atualizada com sucesso!")
+                else:
+                    messages.error(
+                        request, "Registro não encontrado ou sem permissão."
+                    )
+            except ValueError as e:
+                messages.error(request, str(e))
+        elif action == "remove":
+            despesa_id = request.POST.get("despesa_id", "").strip()
+            if repo.delete_by_user(despesa_id, user_id):
+                messages.success(request, "Despesa fixa removida com sucesso!")
+            else:
+                messages.error(request, "Não foi possível remover.")
+        return redirect("finance:despesas-fixas")
+
+    docs = repo.find_by_user(user_id, apenas_ativas=False)
+    despesas = []
+    for d in docs:
+        v = d.get("valor", 0)
+        try:
+            v = float(v)
+        except (TypeError, ValueError):
+            v = 0.0
+        despesas.append(
+            {
+                "id": str(d["_id"]),
+                "nome": d.get("nome", ""),
+                "valor": v,
+                "valor_display": _fmt_brl(v),
+                "dia_vencimento": int(d.get("dia_vencimento", 1)),
+                "ativo": d.get("ativo", True),
+            }
+        )
+
+    return render(
+        request,
+        "finance/despesas_fixas.html",
+        {
+            "user": request.user_mongo,
+            "despesas": despesas,
+            "dias_vencimento": list(range(1, 32)),
+        },
+    )
 
 
 @login_required_mongo
@@ -472,29 +632,6 @@ def categorias_api_view(request):
             'error': 'Erro interno do servidor',
             'message': str(e)
         }, status=500)
-
-from .services.ai_insights import gerar_insights_financeiros
-
-
-@login_required_mongo
-def api_insights(request):
-    period = request.GET.get("period", "mensal")
-
-    # 🔹 DADOS TEMPORÁRIOS PARA TESTE
-    # Depois vamos integrar com os dados reais do dashboard
-    dados_para_ia = {
-        "periodo": period,
-        "total_income": 10000,
-        "total_expenses": 7500,
-        "balance": 2500,
-        "top_category": "Transporte",
-        "top_day": "Segunda",
-        "top_hour": "18:00",
-    }
-
-    insights = gerar_insights_financeiros(dados_para_ia)
-
-    return JsonResponse(insights)
 
 @login_required_mongo
 def contas_view(request):

@@ -30,6 +30,68 @@
         }
     </script>
     <style>
+        .dashboard-container{
+            width:100%;
+            max-width:min(100%, 1400px);
+            margin:0 auto;
+            padding:24px;
+            display:flex;
+            flex-direction:column;
+            gap:24px;
+        }
+
+        @media (max-width:768px){
+            .dashboard-container{
+                width:100%;
+                max-width:100%;
+                padding-left:12px;
+                padding-right:12px;
+                padding-top:16px;
+                padding-bottom:16px;
+                gap:24px;
+            }
+            .dashboard-wrapper,
+            .main-content,
+            .content-area,
+            .dashboard-finance-content{
+                margin-left:0 !important;
+                margin-right:0 !important;
+                max-width:100%;
+            }
+            .main-content{
+                width:100%;
+            }
+        }
+
+        .card-pad{
+            padding:20px;
+        }
+
+        @media (max-width:768px){
+            .card-pad{
+                padding:16px;
+            }
+        }
+
+        .section-title{
+            font-size:20px;
+            font-weight:600;
+            margin-bottom:12px;
+            color:var(--text-primary);
+        }
+
+        .dashboard-grid{
+            display:grid;
+            grid-template-columns:1fr;
+            gap:16px;
+        }
+
+        @media (min-width:1024px){
+            .dashboard-grid{
+                grid-template-columns:1fr 1fr;
+            }
+        }
+
         /* Paleta oficial Leozera — Azul + Verde Neon (IA vibes) */
         /* Variáveis de tema Light/Dark — legibilidade e consistência */
         :root {
@@ -103,6 +165,7 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            overflow-x: hidden;
         }
         *, *::before, *::after { box-sizing: inherit; }
         body {
@@ -269,11 +332,14 @@
         }
         .content-area {
             flex: 1;
-            padding: 1.5rem;
+            width: 100%;
+            max-width: none;
+            padding: 0;
             background: var(--content-bg);
             transition: all 0.3s ease;
             margin: 0;
             margin-left: 0;
+            box-sizing: border-box;
         }
         /* Cards — fundo e borda via variáveis de tema; micro-interação no hover */
         .card-dashboard,
@@ -283,15 +349,329 @@
             border-radius: 12px;
             box-shadow: var(--shadow);
             border: 1px solid var(--border-color);
-            transition: all 0.2s ease;
             will-change: transform;
         }
+        .card,
+        .dashboard-card {
+            transition: all 0.2s ease;
+        }
+        .card-dashboard {
+            transition: all 0.25s ease;
+        }
         .card-dashboard:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
         }
         body.dark-mode .card-dashboard:hover {
-            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+        }
+        /* Botões — feedback suave (main: topbar + conteúdo) */
+        .main-content button {
+            transition: all 0.2s ease;
+        }
+        .main-content button:hover:not(:disabled) {
+            transform: scale(1.02);
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .card-dashboard,
+            .card,
+            .dashboard-card {
+                transition: none !important;
+            }
+            .card-dashboard:hover {
+                transform: none;
+            }
+            .main-content button {
+                transition: none !important;
+            }
+            .main-content button:hover:not(:disabled) {
+                transform: none;
+            }
+        }
+        /* Resumo do Período — destaque principal (gradiente azul + neon) */
+        .card-dashboard.card-resumo-periodo {
+            background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(0,247,182,0.05));
+            border: 1px solid rgba(59,130,246,0.15);
+        }
+        /* Cards internos de métricas (Despesas, Receitas, etc.) */
+        .dashboard-metric-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            transition: all 0.2s ease;
+        }
+        .dashboard-metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(0,0,0,0.07);
+        }
+        body.dark-mode .dashboard-metric-card:hover {
+            box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+        }
+        .dashboard-metric-card .dashboard-metric-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .dashboard-metric-card .icon-wrapper {
+            width: 42px;
+            height: 42px;
+            min-width: 42px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            flex-shrink: 0;
+            opacity: 1;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+        }
+        body.dark-mode .dashboard-metric-card .icon-wrapper {
+            box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+        }
+        .dashboard-metric-card .icon-wrapper svg {
+            width: 20px;
+            height: 20px;
+            display: block;
+            opacity: 1;
+        }
+        .dashboard-metric-card:hover .icon-wrapper {
+            box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+        }
+        body.dark-mode .dashboard-metric-card:hover .icon-wrapper {
+            box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+        }
+        /* Fluxo guiado — blocos do dashboard financeiro */
+        .dashboard-block {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .dashboard-finance-content .dashboard-container {
+            gap: 0;
+            line-height: 1.6;
+        }
+        .dashboard-finance-content .dashboard-container > .dashboard-block {
+            margin-bottom: 32px !important;
+        }
+        .dashboard-finance-content .dashboard-container > .dashboard-block:last-child {
+            margin-bottom: 0 !important;
+        }
+        /* Troca de período no dashboard — opacidade suave */
+        .dashboard-finance-content .fade-transition {
+            transition: opacity 0.3s ease;
+        }
+        .dashboard-finance-content .loading {
+            opacity: 0.4;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .dashboard-finance-content .fade-transition {
+                transition: none;
+            }
+        }
+        /* Skeleton loading — dashboard financeiro */
+        @keyframes dashboard-shimmer {
+            0% { background-position: 100% 0; }
+            100% { background-position: -100% 0; }
+        }
+        .dashboard-finance-content .skeleton {
+            background: linear-gradient(
+                90deg,
+                #f0f0f0 25%,
+                #e0e0e0 37%,
+                #f0f0f0 63%
+            );
+            background-size: 400% 100%;
+            animation: dashboard-shimmer 1.4s ease infinite;
+            border-color: transparent !important;
+            color: transparent !important;
+        }
+        .dashboard-finance-content .skeleton.skeleton-row {
+            border: none;
+        }
+        .dashboard-finance-content .skeleton-metric {
+            display: inline-block;
+            min-height: 2rem;
+            min-width: 6.5rem;
+            border-radius: 6px;
+            vertical-align: middle;
+        }
+        .dashboard-finance-content .skeleton-metric-lg {
+            min-height: 2.75rem;
+            min-width: 10rem;
+            border-radius: 8px;
+        }
+        body.dark-mode .dashboard-finance-content .skeleton,
+        [data-theme="dark"] .dashboard-finance-content .skeleton {
+            background: linear-gradient(
+                90deg,
+                #334155 25%,
+                #475569 37%,
+                #334155 63%
+            );
+            background-size: 400% 100%;
+        }
+        .dashboard-finance-content section.charts-section.dashboard-skeleton-charts,
+        .dashboard-finance-content section.patterns-section.dashboard-skeleton-charts {
+            position: relative;
+        }
+        .dashboard-finance-content section.charts-section.dashboard-skeleton-charts::before,
+        .dashboard-finance-content section.patterns-section.dashboard-skeleton-charts::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 4;
+            border-radius: 12px;
+            pointer-events: none;
+            background: linear-gradient(
+                90deg,
+                #f0f0f0 25%,
+                #e0e0e0 37%,
+                #f0f0f0 63%
+            );
+            background-size: 400% 100%;
+            animation: dashboard-shimmer 1.4s ease infinite;
+        }
+        body.dark-mode .dashboard-finance-content section.charts-section.dashboard-skeleton-charts::before,
+        body.dark-mode .dashboard-finance-content section.patterns-section.dashboard-skeleton-charts::before,
+        [data-theme="dark"] .dashboard-finance-content section.charts-section.dashboard-skeleton-charts::before,
+        [data-theme="dark"] .dashboard-finance-content section.patterns-section.dashboard-skeleton-charts::before {
+            background: linear-gradient(
+                90deg,
+                #334155 25%,
+                #475569 37%,
+                #334155 63%
+            );
+            background-size: 400% 100%;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .dashboard-finance-content .skeleton,
+            .dashboard-finance-content section.charts-section.dashboard-skeleton-charts::before,
+            .dashboard-finance-content section.patterns-section.dashboard-skeleton-charts::before {
+                animation: none;
+            }
+        }
+        .dashboard-finance-content .dashboard-container.dashboard-skeleton-loading {
+            pointer-events: none;
+        }
+        .hero-section {
+            margin-bottom: 32px;
+        }
+        .global-section {
+            padding: 20px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.06), rgba(0, 247, 182, 0.04));
+            border: 1px solid rgba(0, 247, 182, 0.2);
+        }
+        body.dark-mode .global-section,
+        [data-theme="dark"] .global-section {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(0, 247, 182, 0.06));
+            border-color: rgba(0, 247, 182, 0.28);
+        }
+        .period-section {
+            padding: 16px;
+            border-radius: 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+        }
+        .patterns-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+        @media (min-width: 1024px) {
+            .patterns-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        .dashboard-global-tracking {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+            padding: 20px;
+        }
+        body.dark-mode .dashboard-global-tracking,
+        [data-theme="dark"] .dashboard-global-tracking {
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+        }
+        /* Bloco único de gráficos */
+        .charts-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .charts-section > .card-dashboard {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+        }
+        .patterns-grid > .card-dashboard {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+        }
+        /* Análise IA — destaque premium */
+        .dashboard-ai-insight {
+            background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(0,247,182,0.08));
+            border: 1px solid rgba(0,247,182,0.3);
+            box-shadow: 0 0 20px rgba(0,247,182,0.15);
+        }
+        /* IA geral — destaque principal (comportamento ~24 meses) */
+        .dashboard-ai-insight--general {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.16), rgba(0, 247, 182, 0.12));
+            border: 1px solid rgba(0, 247, 182, 0.45);
+            box-shadow:
+                0 12px 40px rgba(0, 247, 182, 0.2),
+                0 0 36px rgba(59, 130, 246, 0.12);
+        }
+        body.dark-mode .dashboard-ai-insight--general,
+        [data-theme="dark"] .dashboard-ai-insight--general {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.22), rgba(0, 247, 182, 0.1));
+            border-color: rgba(0, 247, 182, 0.35);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), 0 0 28px rgba(0, 247, 182, 0.12);
+        }
+        .dashboard-ai-insight__title {
+            font-weight: 600;
+        }
+        /* IA do período — complemento, mais compacto */
+        .dashboard-ai-insight--period.dashboard-ai-insight--compact {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+        }
+        body.dark-mode .dashboard-ai-insight--period.dashboard-ai-insight--compact,
+        [data-theme="dark"] .dashboard-ai-insight--period.dashboard-ai-insight--compact {
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+        }
+        .dashboard-ai-insight--period {
+            box-shadow: 0 10px 32px rgba(15, 23, 42, 0.08), 0 0 28px rgba(0, 247, 182, 0.14);
+        }
+        body.dark-mode .dashboard-ai-insight--period,
+        [data-theme="dark"] .dashboard-ai-insight--period {
+            box-shadow: 0 10px 36px rgba(0, 0, 0, 0.4);
+        }
+        /* Tom visual nos insights principais (headline + bullets) — escopo evita colisão com Bootstrap .alert */
+        .dashboard-finance-content .dashboard-ai-insight .alert {
+            border-left: 4px solid #ef4444;
+            background: rgba(239, 68, 68, 0.05);
+            padding: 0.5rem 0.75rem;
+            border-radius: 0 8px 8px 0;
+        }
+        .dashboard-finance-content .dashboard-ai-insight .success {
+            border-left: 4px solid #22c55e;
+            background: rgba(34, 197, 94, 0.05);
+            padding: 0.5rem 0.75rem;
+            border-radius: 0 8px 8px 0;
+        }
+        body.dark-mode .dashboard-finance-content .dashboard-ai-insight .alert,
+        [data-theme="dark"] .dashboard-finance-content .dashboard-ai-insight .alert {
+            background: rgba(239, 68, 68, 0.12);
+        }
+        body.dark-mode .dashboard-finance-content .dashboard-ai-insight .success,
+        [data-theme="dark"] .dashboard-finance-content .dashboard-ai-insight .success {
+            background: rgba(34, 197, 94, 0.12);
         }
         /* Card de saldo — gradiente e borda suave */
         .balance-card,
@@ -402,35 +782,82 @@
         }
         .content-area .card-dashboard { animation: fadeIn 0.35s ease; }
 
-        /* Hierarquia visual — saldo total no dashboard */
-        .dashboard-finance-content #saldoTotal {
-            font-size: 36px;
+        /* Hierarquia visual — dashboard (leitura guiada) */
+        .dashboard-finance-content .dashboard-container > * {
+            margin-bottom: 0 !important;
+        }
+        /* Textos secundários (labels, descrições, apoio) */
+        .dashboard-finance-content p.text-sm.text-gray-500,
+        .dashboard-finance-content p.text-sm.text-gray-600,
+        .dashboard-finance-content p.text-sm.font-medium.text-gray-600,
+        .dashboard-finance-content p.text-xs.text-gray-500,
+        .dashboard-finance-content p.text-xs.text-gray-600,
+        .dashboard-finance-content #transactionsPaginationInfo,
+        .dashboard-finance-content .text-sm.text-gray-500:not(.section-title),
+        .dashboard-finance-content label.text-sm.text-gray-700,
+        .dashboard-finance-content .card-dashboard .text-sm.font-medium.text-gray-600,
+        .dashboard-finance-content .card-dashboard .text-sm.text-gray-600,
+        .dashboard-finance-content .dashboard-ai-insight .text-xs.text-gray-500,
+        .dashboard-finance-content .dashboard-ai-insight p.text-gray-600,
+        .dashboard-finance-content #dashboardSubGreeting,
+        .dashboard-finance-content table thead th,
+        .dashboard-finance-content table td.text-gray-500 {
+            opacity: 0.7;
+        }
+        /* Valores financeiros principais */
+        .dashboard-finance-content #saldoTotal,
+        .dashboard-finance-content #totalExpenses,
+        .dashboard-finance-content #totalIncome,
+        .dashboard-finance-content #balance,
+        .dashboard-finance-content #savingsRate,
+        .dashboard-finance-content #dayHighestExpense,
+        .dashboard-finance-content #categoryHighestExpense,
+        .dashboard-finance-content #topAccount,
+        .dashboard-finance-content #hourHighestExpense,
+        .dashboard-finance-content #expenseTrend,
+        .dashboard-finance-content #moneySpeed {
+            font-size: 26px;
             font-weight: 700;
+            letter-spacing: -0.02em;
+            opacity: 1;
+        }
+        .dashboard-finance-content #saldoTotal {
             letter-spacing: -0.5px;
         }
         .dashboard-finance-content #saldoTotal + p {
             font-size: 13px;
             opacity: 0.7;
         }
-        /* Espaçamento vertical das seções */
+        /* Espaçamento vertical entre blocos: margin nos .dashboard-block (32px) */
         .dashboard-section {
-            margin-bottom: 28px;
+            margin-bottom: 0;
         }
         .chart-container {
             height: 260px;
         }
         .chart-wrapper {
             position: relative;
-            height: 260px;
+            width: 100%;
+            height: 280px !important;
+            min-height: 0;
+        }
+
+        .chart-wrapper canvas {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100% !important;
+            height: 100% !important;
+            max-height: none;
+        }
+
+        @media (max-width: 768px) {
+            .chart-wrapper {
+                height: 220px !important;
+            }
         }
         @media (max-width: 768px) {
-            .dashboard-section {
-                margin-bottom: 1rem;
-            }
             .chart-container {
-                height: 200px;
-            }
-            .chart-wrapper {
                 height: 200px;
             }
             .dashboard-finance-content table {
@@ -439,18 +866,28 @@
             h2 {
                 font-size: 1.25rem;
             }
-            h3 {
+            h3:not(.section-title):not(.dashboard-ai-insight__title) {
                 font-size: 1rem;
             }
-            .content-area {
-                padding: 1rem;
+            .section-title {
+                font-size: 18px;
             }
             .card-dashboard {
                 padding: 1rem;
                 border-radius: 10px;
             }
-            .dashboard-finance-content #saldoTotal {
-                font-size: 28px;
+            .dashboard-finance-content #saldoTotal,
+            .dashboard-finance-content #totalExpenses,
+            .dashboard-finance-content #totalIncome,
+            .dashboard-finance-content #balance,
+            .dashboard-finance-content #savingsRate,
+            .dashboard-finance-content #dayHighestExpense,
+            .dashboard-finance-content #categoryHighestExpense,
+            .dashboard-finance-content #topAccount,
+            .dashboard-finance-content #hourHighestExpense,
+            .dashboard-finance-content #expenseTrend,
+            .dashboard-finance-content #moneySpeed {
+                font-size: 24px;
             }
             .dashboard-section.grid {
                 grid-template-columns: 1fr !important;
@@ -508,11 +945,6 @@
 
         @media (max-width:768px){
 
-        /* reduzir padding geral */
-        .content-area{
-        padding:1rem !important;
-        }
-
         /* sidebar ocupar largura correta */
         .sidebar{
         width:85%;
@@ -537,24 +969,6 @@
         /* cards mais compactos */
         .card-dashboard{
         padding:1rem !important;
-        }
-
-        /* números financeiros menores */
-        #totalExpenses,
-        #totalIncome,
-        #balance,
-        #savingsRate{
-        font-size:20px !important;
-        }
-
-        /* saldo principal */
-        #saldoTotal{
-        font-size:28px !important;
-        }
-
-        /* gráficos menores */
-        canvas{
-        max-height:220px !important;
         }
 
         /* grids sempre coluna */
@@ -597,12 +1011,6 @@
 
         @media (max-width:768px){
 
-        /* container principal do dashboard */
-        .dashboard-finance-content .max-w-7xl{
-        padding-left:1rem !important;
-        padding-right:1rem !important;
-        }
-
         /* cards do resumo financeiro */
         .dashboard-finance-content .grid{
         grid-template-columns:1fr !important;
@@ -616,11 +1024,6 @@
         /* títulos */
         .dashboard-finance-content h3{
         font-size:16px !important;
-        }
-
-        /* gráficos */
-        .dashboard-finance-content canvas{
-        height:200px !important;
         }
 
         /* tabelas */
@@ -705,6 +1108,7 @@
                         <ul class="submenu list-unstyled mb-0">
                             <li><a href="{% url 'finance:criar-transacao' %}" class="{% if 'transacoes/criar' in request.path %}active{% endif %}"><i class="bi bi-plus-circle me-2"></i>Novo Lançamento</a></li>
                             <li><a href="{% url 'finance:categorias' %}" class="{% if 'categorias' in request.path %}active{% endif %}"><i class="bi bi-tags me-2"></i>Categorias</a></li>
+                            <li><a href="{% url 'finance:despesas-fixas' %}" class="{% if 'despesas-fixas' in request.path %}active{% endif %}"><i class="bi bi-arrow-repeat me-2"></i>Despesas fixas</a></li>
                             <li><a href="{% url 'finance:contas' %}" class="{% if 'contas' in request.path %}active{% endif %}"><i class="bi bi-bank me-2"></i>Contas</a></li>
                             <li><a href="{% url 'finance:report' %}" class="{% if 'report' in request.path %}active{% endif %}"><i class="bi bi-file-earmark-bar-graph me-2"></i>Relatórios</a></li>
                         </ul>

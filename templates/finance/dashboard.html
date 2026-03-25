@@ -9,155 +9,44 @@
 {% block content %}
 <div class="dashboard-finance-content min-h-screen">
     <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-8">
-        <!-- Saldo Total e Contas -->
-        <div class="dashboard-section bg-white rounded-2xl shadow-lg p-8">
-            <p class="text-sm text-gray-500">Saldo Total</p>
-            <p id="saldoTotal" class="text-4xl font-bold text-green-600">
-                R$ 0,00
-            </p>
-            <p class="text-sm text-gray-500 mt-1">
-                Soma das contas bancárias (não inclui cartões)
-            </p>
-        </div>
-        <div id="accountsList" class="dashboard-section grid md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-
-        <!-- Cartões de Crédito (exibido apenas se houver credit_cards) -->
-        <div id="creditCardsSection" class="dashboard-section hidden">
-            <h3 class="text-xl font-bold text-gray-800 mt-8">
-                Cartões de Crédito
-            </h3>
-            <div id="creditCardsList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4"></div>
-        </div>
-
-        <!-- Filtro de Período -->
-        <div class="dashboard-section bg-white rounded-2xl shadow p-6 mb-6">
-            <div class="flex flex-wrap items-center gap-4">
-                <div class="flex items-center space-x-2">
-                    <label class="text-sm font-medium text-gray-700">Período:</label>
-                    <select id="periodFilter" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                        <option value="diário">Diário</option>
-                        <option value="semanal">Semanal</option>
-                        <option value="mensal" selected>Mensal</option>
-                        <option value="anual">Anual</option>
-                    </select>
-                </div>
-                <div id="monthFilterWrapper" class="flex items-center space-x-2 hidden">
-                    <label class="text-sm font-medium text-gray-700">Mês:</label>
-                    <select id="monthFilter" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                        <option value="1">Janeiro</option>
-                        <option value="2">Fevereiro</option>
-                        <option value="3">Março</option>
-                        <option value="4">Abril</option>
-                        <option value="5">Maio</option>
-                        <option value="6">Junho</option>
-                        <option value="7">Julho</option>
-                        <option value="8">Agosto</option>
-                        <option value="9">Setembro</option>
-                        <option value="10">Outubro</option>
-                        <option value="11">Novembro</option>
-                        <option value="12">Dezembro</option>
-                    </select>
-                </div>
-                <div id="yearFilterWrapper" class="flex items-center space-x-2 hidden">
-                    <label class="text-sm font-medium text-gray-700">Ano:</label>
-                    <select id="yearFilter" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                        <!-- Preenchido dinamicamente via JavaScript -->
-                    </select>
-                </div>
+    <div class="dashboard-container fade-transition">
+        <!-- 1. Visão imediata -->
+        <section class="dashboard-block hero-section" aria-label="Visão imediata">
+            <div class="dashboard-section bg-gradient-to-r from-blue-600 to-emerald-500 rounded-xl p-6 text-white shadow-lg">
+                <h2 id="dashboardGreeting" class="text-2xl font-semibold">
+                    Olá 👋
+                </h2>
+                <p id="dashboardSubGreeting" class="text-sm opacity-90 mt-1">
+                    Aqui está o resumo financeiro até agora.
+                </p>
             </div>
-        </div>
 
-        <div class="dashboard-section bg-gradient-to-r from-blue-600 to-emerald-500 rounded-xl p-6 text-white shadow-lg">
-            <h2 id="dashboardGreeting" class="text-2xl font-semibold">
-                Olá 👋
-            </h2>
-            <p id="dashboardSubGreeting" class="text-sm opacity-90 mt-1">
-                Aqui está o resumo financeiro até agora.
-            </p>
-        </div>
+            <div class="dashboard-section bg-white rounded-2xl shadow-lg p-8">
+                <p class="text-sm text-gray-500">Saldo Total</p>
+                <p id="saldoTotal" class="text-4xl font-bold text-green-600">
+                    R$ 0,00
+                </p>
+                <p class="text-sm text-gray-500 mt-1">
+                    Soma das contas bancárias (não inclui cartões)
+                </p>
+            </div>
 
-        <!-- Cards de Métricas -->
-        <div class="dashboard-section grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            <!-- Resumo do Período: agrupa as 4 métricas principais -->
-            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-6 lg:col-span-2">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">
-                    Resumo do Período
+            <div id="accountsList" class="dashboard-section grid md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+
+            <div id="creditCardsSection" class="dashboard-section hidden">
+                <h3 class="text-xl font-bold text-gray-800 mt-8">
+                    Cartões de Crédito
                 </h3>
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                    <!-- Card: Despesas Totais -->
-                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-gray-600">Despesas Totais</p>
-                                <p class="text-2xl font-bold text-red-600 mt-1" id="totalExpenses">
-                                    R$ 0,00
-                                </p>
-                            </div>
-                            <div class="bg-red-100 rounded-full p-3">
-                                <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Card: Receitas Totais -->
-                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-gray-600">Receitas Totais</p>
-                                <p class="text-2xl font-bold text-green-600 mt-1" id="totalIncome">
-                                    R$ 0,00
-                                </p>
-                            </div>
-                            <div class="bg-green-100 rounded-full p-3">
-                                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Card: Resultado do Período -->
-                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-gray-600">Resultado do Período</p>
-                                <p class="text-2xl font-bold mt-1" id="balance">
-                                    R$ 0,00
-                                </p>
-                            </div>
-                            <div class="bg-primary-100 rounded-full p-3">
-                                <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Card: Taxa de Economia -->
-                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-gray-600">Taxa de Economia</p>
-                                <p class="text-2xl font-bold mt-1" id="savingsRate">
-                                    0%
-                                </p>
-                            </div>
-                            <div class="bg-blue-100 rounded-full p-3">
-                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V6m0 12v-2"></path>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <div id="creditCardsList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4"></div>
             </div>
+        </section>
 
-            <!-- GRUPO 1 — Situação Financeira -->
-            <h3 class="text-lg font-semibold text-gray-900 mt-6 mb-4 col-span-full">
-                Situação Financeira
-            </h3>
-            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <!-- 2. Situação geral -->
+        <section class="dashboard-block global-section" aria-label="Situação geral">
+            <h3 class="section-title mb-0">Situação Financeira</h3>
+            <p class="text-sm text-gray-600 -mt-1 mb-1">Visão geral da sua saúde financeira</p>
+
+            <div class="card-dashboard card-pad bg-white rounded-lg shadow-sm border border-gray-200">
                 <p class="text-sm font-medium text-gray-600 mb-2">Saúde Financeira</p>
 
                 <div class="w-full bg-gray-200 rounded-full h-3 mb-2">
@@ -172,228 +61,306 @@
                 </p>
             </div>
 
-            <!-- GRUPO 2 — Comportamento de Gastos -->
-            <h3 class="text-lg font-semibold text-gray-900 mt-6 mb-4 col-span-full">
-                Comportamento de Gastos
-            </h3>
-            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">Dia com Maior Gasto</p>
-                        <p class="text-lg font-semibold text-gray-900 mt-1" id="dayHighestExpense">
-                            -
-                        </p>
+            <div class="dashboard-section dashboard-ai-insight dashboard-ai-insight--general rounded-xl p-6">
+                <h3 class="dashboard-ai-insight__title text-blue-700 text-xl font-semibold mb-3">
+                    Para onde seu dinheiro está indo
+                </h3>
+                <p class="text-xs text-gray-500 mb-3">Análise do seu comportamento ao longo do tempo (~24 meses)</p>
+                <div id="aiInsightGeneralText" class="space-y-3 text-sm text-gray-700">
+                    <div id="aiInsightGeneralHeadline"
+                         class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3 text-sm font-medium text-blue-800 hidden">
                     </div>
-                    <div class="bg-blue-100 rounded-full p-3">
-                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                        </svg>
+                    <p class="text-gray-500">Gerando análise geral...</p>
+                </div>
+            </div>
+
+            <div class="dashboard-global-tracking dashboard-section">
+                <h3 class="section-title mb-3">Principais categorias de gasto</h3>
+                <p class="text-xs text-gray-500 mb-2">Valores no recorte exibido no dashboard</p>
+                <div id="topExpenseCategoriesList" class="text-sm text-gray-700 top-expense-ranking">
+                    Carregando...
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Direcionamento do período + diagnóstico do período -->
+        <section class="dashboard-block period-section" aria-label="Período e análise">
+            <div class="dashboard-section bg-white rounded-2xl shadow p-6">
+                <div class="flex flex-wrap items-center gap-4">
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700">Período:</label>
+                        <select id="periodFilter" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                            <option value="diário">Diário</option>
+                            <option value="semanal">Semanal</option>
+                            <option value="mensal" selected>Mensal</option>
+                            <option value="anual">Anual</option>
+                            <option value="geral">Geral (comportamento)</option>
+                        </select>
+                    </div>
+                    <div id="monthFilterWrapper" class="flex items-center space-x-2 hidden">
+                        <label class="text-sm font-medium text-gray-700">Mês:</label>
+                        <select id="monthFilter" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                            <option value="1">Janeiro</option>
+                            <option value="2">Fevereiro</option>
+                            <option value="3">Março</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Maio</option>
+                            <option value="6">Junho</option>
+                            <option value="7">Julho</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Setembro</option>
+                            <option value="10">Outubro</option>
+                            <option value="11">Novembro</option>
+                            <option value="12">Dezembro</option>
+                        </select>
+                    </div>
+                    <div id="yearFilterWrapper" class="flex items-center space-x-2 hidden">
+                        <label class="text-sm font-medium text-gray-700">Ano:</label>
+                        <select id="yearFilter" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                            <!-- Preenchido dinamicamente via JavaScript -->
+                        </select>
                     </div>
                 </div>
             </div>
 
-            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">Categoria com Maior Gasto</p>
-                        <p class="text-lg font-semibold text-gray-900 mt-1" id="categoryHighestExpense">
-                            -
-                        </p>
-                        <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
-                            <div id="categoryExpenseBar"
-                                 class="h-2 rounded-full bg-purple-500"
-                                 style="width:0%">
+            <div class="dashboard-section grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="card-dashboard card-pad card-resumo-periodo bg-white rounded-lg shadow-sm border border-gray-200 lg:col-span-2">
+                    <h3 class="section-title mb-4">
+                        Resumo do Período
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="dashboard-metric-card rounded-lg p-4">
+                            <div class="dashboard-metric-row">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">Despesas Totais</p>
+                                    <p class="text-2xl font-bold text-red-600 mt-1" id="totalExpenses">
+                                        R$ 0,00
+                                    </p>
+                                </div>
+                                <div class="icon-wrapper bg-red-100">
+                                    <svg class="text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                                    </svg>
+                                </div>
                             </div>
                         </div>
-                        <p id="categoryAlert"
-                           class="text-xs text-red-600 mt-2 hidden">
-                        </p>
-                    </div>
-                    <div class="bg-purple-100 rounded-full p-3">
-                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">Conta com Mais Gastos</p>
-                        <p class="text-lg font-semibold text-gray-900 mt-1" id="topAccount">
-                            -
-                        </p>
-                    </div>
-                    <div class="bg-indigo-100 rounded-full p-3">
-                        <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M3 10h18M7 15h1m4 0h1m-9 4h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">Horário com Maior Gasto</p>
-                        <p class="text-lg font-semibold text-gray-900 mt-1" id="hourHighestExpense">
-                            -
-                        </p>
-                    </div>
-                    <div class="bg-yellow-100 rounded-full p-3">
-                        <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-
-            <!-- GRUPO 3 — Tendências Financeiras -->
-            <h3 class="text-lg font-semibold text-gray-900 mt-6 mb-4 col-span-full">
-                Tendências Financeiras
-            </h3>
-            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">
-                            Gastos vs mês anterior
-                        </p>
-                        <p class="text-2xl font-bold mt-1" id="expenseTrend">
-                            -
-                        </p>
-                    </div>
-
-                    <div class="bg-orange-100 rounded-full p-3">
-                        <svg class="w-6 h-6 text-orange-600"
-                             fill="none"
-                             stroke="currentColor"
-                             viewBox="0 0 24 24">
-                            <path stroke-linecap="round"
-                                  stroke-linejoin="round"
-                                  stroke-width="2"
-                                  d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/>
-                        </svg>
+                        <div class="dashboard-metric-card rounded-lg p-4">
+                            <div class="dashboard-metric-row">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">Receitas Totais</p>
+                                    <p class="text-2xl font-bold text-green-600 mt-1" id="totalIncome">
+                                        R$ 0,00
+                                    </p>
+                                </div>
+                                <div class="icon-wrapper bg-green-100">
+                                    <svg class="text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="dashboard-metric-card rounded-lg p-4">
+                            <div class="dashboard-metric-row">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">Resultado do Período</p>
+                                    <p class="text-2xl font-bold mt-1" id="balance">
+                                        R$ 0,00
+                                    </p>
+                                </div>
+                                <div class="icon-wrapper bg-primary-100">
+                                    <svg class="text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="dashboard-metric-card rounded-lg p-4">
+                            <div class="dashboard-metric-row">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">Taxa de Economia</p>
+                                    <p class="text-2xl font-bold mt-1" id="savingsRate">
+                                        0%
+                                    </p>
+                                </div>
+                                <div class="icon-wrapper bg-blue-100">
+                                    <svg class="text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V6m0 12v-2"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">
-                            Velocidade do dinheiro
-                        </p>
+            <div class="dashboard-section dashboard-ai-insight dashboard-ai-insight--period dashboard-ai-insight--compact rounded-lg p-4 border border-gray-200/80">
+                <h3 class="dashboard-ai-insight__title text-blue-600 text-base font-semibold mb-2">
+                    O que está acontecendo neste período
+                </h3>
+                <p class="text-xs text-gray-500 mb-2">Complementa a visão geral com o filtro selecionado acima</p>
 
-                        <p class="text-2xl font-bold mt-1" id="moneySpeed">
-                            -
-                        </p>
+                <div id="aiInsightText" class="space-y-2 text-sm text-gray-700">
+                    <div id="aiInsightHeadline"
+                         class="bg-blue-50/90 border border-blue-200 rounded-md p-2 mb-2 text-sm font-medium text-blue-800 hidden">
                     </div>
+                    <p class="text-gray-500 text-sm">
+                        Gerando análise do período...
+                    </p>
+                </div>
+            </div>
+        </section>
 
-                    <div class="bg-teal-100 rounded-full p-3">
-                        <svg class="w-6 h-6 text-teal-600"
-                             fill="none"
-                             stroke="currentColor"
-                             viewBox="0 0 24 24">
+        <!-- 4. Comportamento e tendências -->
+        <section class="dashboard-block behavior-section" aria-label="Comportamento de gastos">
+            <div class="dashboard-section grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <h3 class="section-title mt-0 mb-4 col-span-full">
+                    Comportamento de Gastos
+                </h3>
+                <div class="card-dashboard card-pad bg-white rounded-lg shadow-sm border border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Dia com Maior Gasto</p>
+                            <p class="text-lg font-semibold text-gray-900 mt-1" id="dayHighestExpense">
+                                -
+                            </p>
+                        </div>
+                        <div class="bg-blue-100 rounded-full p-3">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
 
-                            <path stroke-linecap="round"
-                                  stroke-linejoin="round"
-                                  stroke-width="2"
-                                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V6m0 12v-2"/>
-                        </svg>
+                <div class="card-dashboard card-pad bg-white rounded-lg shadow-sm border border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Categoria com Maior Gasto</p>
+                            <p class="text-lg font-semibold text-gray-900 mt-1" id="categoryHighestExpense">
+                                -
+                            </p>
+                            <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                                <div id="categoryExpenseBar"
+                                     class="h-2 rounded-full bg-purple-500"
+                                     style="width:0%">
+                                </div>
+                            </div>
+                            <p id="categoryAlert"
+                               class="text-xs text-red-600 mt-2 hidden">
+                            </p>
+                        </div>
+                        <div class="bg-purple-100 rounded-full p-3">
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-dashboard card-pad bg-white rounded-lg shadow-sm border border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Conta com Mais Gastos</p>
+                            <p class="text-lg font-semibold text-gray-900 mt-1" id="topAccount">
+                                -
+                            </p>
+                        </div>
+                        <div class="bg-indigo-100 rounded-full p-3">
+                            <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 10h18M7 15h1m4 0h1m-9 4h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-dashboard card-pad bg-white rounded-lg shadow-sm border border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Horário com Maior Gasto</p>
+                            <p class="text-lg font-semibold text-gray-900 mt-1" id="hourHighestExpense">
+                                -
+                            </p>
+                        </div>
+                        <div class="bg-yellow-100 rounded-full p-3">
+                            <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 class="section-title mt-6 mb-4 col-span-full">
+                    Seu comportamento ao longo do tempo
+                </h3>
+                <div class="card-dashboard card-pad bg-white rounded-lg shadow-sm border border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">
+                                Gastos vs mês anterior
+                            </p>
+                            <p class="text-2xl font-bold mt-1" id="expenseTrend">
+                                -
+                            </p>
+                        </div>
+
+                        <div class="bg-orange-100 rounded-full p-3">
+                            <svg class="w-6 h-6 text-orange-600"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 viewBox="0 0 24 24">
+                                <path stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      stroke-width="2"
+                                      d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-dashboard card-pad bg-white rounded-lg shadow-sm border border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">
+                                Velocidade do dinheiro
+                            </p>
+
+                            <p class="text-2xl font-bold mt-1" id="moneySpeed">
+                                -
+                            </p>
+                        </div>
+
+                        <div class="bg-teal-100 rounded-full p-3">
+                            <svg class="w-6 h-6 text-teal-600"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 viewBox="0 0 24 24">
+
+                                <path stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      stroke-width="2"
+                                      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V6m0 12v-2"/>
+                            </svg>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <div class="dashboard-section bg-white border border-blue-200 rounded-xl p-5 shadow-sm mb-6">
-            <h3 class="font-semibold text-blue-600 text-lg mb-3">
-                🧠 Análise Financeira do Leozera
-            </h3>
-
-            <div id="aiInsightText" class="space-y-3 text-sm text-gray-700">
-                <div id="aiInsightHeadline"
-                     class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3 text-sm font-medium text-blue-800 hidden">
-                </div>
-                <p class="text-gray-500">
-                    Gerando análise financeira...
-                </p>
-            </div>
-        </div>
-
-        <!-- Top Gastos do Período -->
-        <div class="dashboard-section card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <h3 class="text-lg font-semibold text-gray-900 mb-3">Top Gastos do Período</h3>
-            <div id="topExpenseCategoriesList" class="text-sm text-gray-700 top-expense-ranking">
-                Carregando...
-            </div>
-        </div>
-
-        <!-- Checklist Primeiros Passos -->
-        <div id="onboardingChecklistSection" class="dashboard-section">
-            <div id="onboardingChecklist" class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">Primeiros passos</h3>
-                <p class="text-sm text-gray-600 mb-4">Complete os passos abaixo para configurar seu Leozera.</p>
-                <ul class="space-y-3 text-sm text-gray-700">
-                    <li class="flex items-center gap-2">
-                        <span id="checklistAccount" class="checklist-box" aria-hidden="true">☐</span>
-                        <span>Criar sua primeira conta</span>
-                    </li>
-                    <li class="flex items-center gap-2">
-                        <span id="checklistTransaction" class="checklist-box" aria-hidden="true">☐</span>
-                        <span>Registrar sua primeira transação</span>
-                    </li>
-                    <li class="flex items-center gap-2">
-                        <span id="checklistInsight" class="checklist-box" aria-hidden="true">☐</span>
-                        <span>Ver sua análise financeira</span>
-                    </li>
-                </ul>
-            </div>
-            <div id="onboardingCompleted" class="card-dashboard bg-white rounded-lg shadow-sm border border-green-200 p-4 hidden">
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">🎉 Setup concluído</h3>
-                <p class="text-sm text-gray-600">Seu Leozera já está configurado.<br>Agora você pode acompanhar para onde seu dinheiro está indo.</p>
-            </div>
-        </div>
-
-        <!-- Seção de Gráficos -->
-        <div class="dashboard-section grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4 lg:col-span-2">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+        <!-- 5. Exploração visual -->
+        <section class="dashboard-block charts-section" aria-label="Gráficos principais">
+            <div class="card-dashboard">
+                <h3 class="section-title mb-4">
                     Evolução do Saldo no Período
                 </h3>
                 <div class="h-72 chart-wrapper">
                     <canvas id="balanceEvolutionChart"></canvas>
                 </div>
             </div>
-            <!-- Gráfico: Despesas e Entradas por Categoria -->
-            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Despesas e Entradas por Categoria</h3>
-                <div class="h-64 chart-wrapper">
-                    <canvas id="categoryChart"></canvas>
-                </div>
-            </div>
 
-            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">
-                    Distribuição de Despesas
-                </h3>
-                <div class="h-64 chart-wrapper">
-                    <canvas id="expensesDistributionChart"></canvas>
-                </div>
-            </div>
-
-            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4 lg:col-span-2">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">
-                    Despesas por Conta
-                </h3>
-                <div class="h-64 chart-wrapper">
-                    <canvas id="expensesByAccountChart"></canvas>
-                </div>
-            </div>
-
-            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+            <div class="card-dashboard">
+                <h3 class="section-title mb-4">
                     Receita vs Despesa
                 </h3>
                 <div class="relative h-64 chart-wrapper">
@@ -404,72 +371,129 @@
                 </div>
             </div>
 
-            <!-- Gráfico: Gastos por Dia da Semana -->
-            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Gastos por Dia da Semana</h3>
+            <div class="card-dashboard">
+                <h3 class="section-title mb-4">Despesas e Entradas por Categoria</h3>
                 <div class="h-64 chart-wrapper">
-                    <canvas id="weekdayChart"></canvas>
+                    <canvas id="categoryChart"></canvas>
                 </div>
             </div>
 
-            <!-- Gráfico: Gastos por Horário -->
-            <div class="card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 p-4 lg:col-span-2">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Gastos por Horário do Dia</h3>
+            <div class="card-dashboard">
+                <h3 class="section-title mb-4">
+                    Distribuição de Despesas
+                </h3>
                 <div class="h-64 chart-wrapper">
-                    <canvas id="hourChart"></canvas>
+                    <canvas id="expensesDistributionChart"></canvas>
                 </div>
             </div>
-        </div>
 
-        <!-- Tabela de Transações -->
-        <div class="dashboard-section card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <div class="px-4 sm:px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                <h3 class="text-lg font-semibold text-gray-900 mb-2 sm:mb-0">Transações</h3>
-                <div id="transactionsPaginationInfo" class="text-sm text-gray-600"></div>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                            <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
-                            <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hora</th>
-                            <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoria</th>
-                            <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-                            <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descrição</th>
-                            <th class="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
-                        </tr>
-                    </thead>
-                    <tbody id="transactionsTableBody" class="bg-white divide-y divide-gray-200">
-                        <tr>
-                            <td colspan="7" class="px-6 py-4 text-center text-gray-500">
-                                Carregando...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <!-- Paginação -->
-            <div class="px-4 sm:px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div class="flex items-center space-x-2">
-                    <span class="text-sm text-gray-700">Itens por página:</span>
-                    <select id="transactionsLimit" class="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
-                        <option value="10">10</option>
-                        <option value="20" selected>20</option>
-                        <option value="50">50</option>
-                    </select>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <button id="prevPageBtn" class="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                        Anterior
-                    </button>
-                    <span id="currentPageInfo" class="text-sm text-gray-700">Página 1</span>
-                    <button id="nextPageBtn" class="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                        Próxima
-                    </button>
+            <div class="card-dashboard">
+                <h3 class="section-title mb-4">
+                    Despesas por Conta
+                </h3>
+                <div class="h-64 chart-wrapper">
+                    <canvas id="expensesByAccountChart"></canvas>
                 </div>
             </div>
-        </div>
+        </section>
+
+        <!-- 6. Padrões avançados -->
+        <section class="dashboard-block patterns-section" aria-label="Padrões de gasto">
+            <h3 class="section-title mb-0">Padrões de gasto</h3>
+            <p class="text-sm text-gray-600 -mt-1 mb-1">Dia da semana e horário</p>
+            <div class="patterns-grid">
+                <div class="card-dashboard">
+                    <h3 class="section-title mb-4">Gastos por Dia da Semana</h3>
+                    <div class="h-64 chart-wrapper">
+                        <canvas id="weekdayChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card-dashboard">
+                    <h3 class="section-title mb-4">Gastos por Horário do Dia</h3>
+                    <div class="h-64 chart-wrapper">
+                        <canvas id="hourChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 7. Detalhamento -->
+        <section class="dashboard-block details-section" aria-label="Detalhes e setup">
+            <div class="dashboard-section card-dashboard bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-4 sm:px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <h3 class="section-title mb-2 sm:mb-0">Transações</h3>
+                    <div id="transactionsPaginationInfo" class="text-sm text-gray-600"></div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                                <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hora</th>
+                                <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoria</th>
+                                <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                                <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descrição</th>
+                                <th class="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactionsTableBody" class="bg-white divide-y divide-gray-200">
+                            <tr>
+                                <td colspan="7" class="px-6 py-4 text-center text-gray-500">
+                                    Carregando...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="px-4 sm:px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm text-gray-700">Itens por página:</span>
+                        <select id="transactionsLimit" class="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button id="prevPageBtn" class="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            Anterior
+                        </button>
+                        <span id="currentPageInfo" class="text-sm text-gray-700">Página 1</span>
+                        <button id="nextPageBtn" class="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            Próxima
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="onboardingChecklistSection" class="dashboard-section">
+                <div id="onboardingChecklist" class="card-dashboard card-pad bg-white rounded-lg shadow-sm border border-gray-200">
+                    <h3 class="section-title mb-2">Primeiros passos</h3>
+                    <p class="text-sm text-gray-600 mb-4">Complete os passos abaixo para configurar seu Leozera.</p>
+                    <ul class="space-y-3 text-sm text-gray-700">
+                        <li class="flex items-center gap-2">
+                            <span id="checklistAccount" class="checklist-box" aria-hidden="true">☐</span>
+                            <span>Criar sua primeira conta</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span id="checklistTransaction" class="checklist-box" aria-hidden="true">☐</span>
+                            <span>Registrar sua primeira transação</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span id="checklistInsight" class="checklist-box" aria-hidden="true">☐</span>
+                            <span>Ver sua análise financeira</span>
+                        </li>
+                    </ul>
+                </div>
+                <div id="onboardingCompleted" class="card-dashboard card-pad bg-white rounded-lg shadow-sm border border-green-200 hidden">
+                    <h3 class="section-title mb-2">🎉 Setup concluído</h3>
+                    <p class="text-sm text-gray-600">Seu Leozera já está configurado.<br>Agora você pode acompanhar para onde seu dinheiro está indo.</p>
+                </div>
+            </div>
+        </section>
+
     </div>
 </div>
 
@@ -484,7 +508,7 @@
             <!-- Header do Modal -->
             <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 border-b border-gray-200">
                 <div class="flex items-center justify-between">
-                    <h3 class="text-lg font-semibold text-gray-900">Gerenciar Categorias Personalizadas</h3>
+                    <h3 class="section-title">Gerenciar Categorias Personalizadas</h3>
                     <button id="closeCategoriesModal" class="text-gray-400 hover:text-gray-500">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -697,7 +721,7 @@ function updateFilterVisibility() {
     const monthWrapper = document.getElementById('monthFilterWrapper');
     const yearWrapper = document.getElementById('yearFilterWrapper');
     if (!monthWrapper || !yearWrapper) return;
-    if (period === 'diário' || period === 'semanal') {
+    if (period === 'diário' || period === 'semanal' || period === 'geral') {
         monthWrapper.classList.add('hidden');
         yearWrapper.classList.add('hidden');
     } else if (period === 'mensal') {
@@ -938,9 +962,15 @@ function updateOnboardingChecklist(opts) {
     if (opts && opts.transactions !== undefined) {
         onboardingChecklistState.hasTransaction = Array.isArray(opts.transactions) && opts.transactions.length > 0;
     }
-    var insightEl = document.getElementById('aiInsightText');
-    var insightText = insightEl ? (insightEl.textContent || insightEl.innerText || '').trim() : '';
-    onboardingChecklistState.hasInsight = insightText.length > 0 && insightText.indexOf('Gerando análise financeira') === -1;
+    var generalEl = document.getElementById('aiInsightGeneralText');
+    var periodEl = document.getElementById('aiInsightText');
+    var g = generalEl ? (generalEl.textContent || generalEl.innerText || '').trim() : '';
+    var p = periodEl ? (periodEl.textContent || periodEl.innerText || '').trim() : '';
+    var loadingGeneral = g.indexOf('Gerando análise geral') !== -1;
+    var loadingPeriod = p.indexOf('Gerando análise do período') !== -1;
+    var hasGeneral = g.length > 0 && !loadingGeneral;
+    var hasPeriod = p.length > 0 && !loadingPeriod;
+    onboardingChecklistState.hasInsight = hasGeneral || hasPeriod;
 
     var accountBox = document.getElementById('checklistAccount');
     var transactionBox = document.getElementById('checklistTransaction');
@@ -1591,6 +1621,8 @@ function updateDashboardSubGreeting() {
         text = 'Resumo financeiro de hoje';
     } else if (period === 'semanal') {
         text = 'Resumo financeiro da semana';
+    } else if (period === 'geral') {
+        text = 'Visão geral do seu comportamento financeiro (últimos ~24 meses).';
     } else if (period === 'anual' && yearFilterEl) {
         const year = yearFilterEl.value || new Date().getFullYear();
         text = 'Resumo financeiro de ' + year;
@@ -1605,50 +1637,102 @@ function updateDashboardSubGreeting() {
     subGreetingEl.textContent = text;
 }
 
+/** Destaque por palavras-chave apenas nos insights principais (headline + insights_chave). Alerta tem prioridade. */
+function aiInsightToneClass(text) {
+    if (!text || typeof text !== 'string') return '';
+    const t = text.toLowerCase();
+    var negative = /\b(alto|alta|aumentou|queda|baixo|baixa)\b/.test(t);
+    var positive = /\b(bom|bons|boa|boas|positivo|positiva|crescimento)\b/.test(t);
+    if (negative) return ' alert';
+    if (positive) return ' success';
+    return '';
+}
+
+function buildAiInsightInnerHtml(data, headlineElementId, compact) {
+    const headlineText = (data.headline && String(data.headline).trim()) ? String(data.headline).trim() : '';
+    const hasHeadline = headlineText.length > 0;
+    const headlineTone = hasHeadline ? aiInsightToneClass(headlineText) : '';
+    const headlineClass = (compact
+        ? 'bg-blue-50/90 border border-blue-200 rounded-md p-2 mb-2 text-sm font-medium text-blue-800'
+        : 'bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3 text-sm font-medium text-blue-800') + headlineTone + (hasHeadline ? '' : ' hidden');
+
+    const rawInsights = Array.isArray(data.insights_chave) ? data.insights_chave : [];
+    const listClass = compact
+        ? 'list-none space-y-2 mb-3 text-gray-700 text-sm pl-0'
+        : 'list-none space-y-2 mb-4 text-gray-700 text-sm pl-0';
+    const insightsHtml = rawInsights.length
+        ? '<ul class="' + listClass + '">' +
+          rawInsights.map(function (item) {
+              var s = String(item);
+              var tone = aiInsightToneClass(s);
+              return '<li class="rounded-r-lg' + tone + '">' + escapeHtml(s) + '</li>';
+          }).join('') +
+          '</ul>'
+        : '';
+
+    const labelClass = compact ? 'font-semibold text-gray-800 text-xs' : 'font-semibold text-gray-800';
+    const pClass = compact ? 'text-gray-600 text-sm' : 'text-gray-600';
+
+    return (
+        '<div id="' + headlineElementId + '" class="' + headlineClass + '">' + escapeHtml(headlineText) + '</div>' +
+        insightsHtml +
+        '<div><span class="' + labelClass + '">Diagnóstico</span><p class="' + pClass + '">' + escapeHtml(data.diagnostico || '-') + '</p></div>' +
+        '<div><span class="' + labelClass + '">Impacto</span><p class="' + pClass + '">' + escapeHtml(data.impacto || '-') + '</p></div>' +
+        '<div><span class="' + labelClass + '">Projeção</span><p class="' + pClass + '">' + escapeHtml(data.projecao || '-') + '</p></div>' +
+        '<div><span class="' + labelClass + '">Recomendação</span><p class="' + pClass + '">' + escapeHtml(data.recomendacao || '-') + '</p></div>'
+    );
+}
+
 async function loadInsights() {
     try {
         const period = document.getElementById('periodFilter').value;
         const month = document.getElementById('monthFilter')?.value;
         const year = document.getElementById('yearFilter')?.value;
 
-        const params = new URLSearchParams();
-        params.append('period', period);
-        if (month) params.append('month', month);
-        if (year) params.append('year', year);
+        const generalParams = new URLSearchParams();
+        generalParams.append('period', 'geral');
 
-        const url = `/finance/api/insights/?${params.toString()}`;
-        const response = await fetch(url);
-        const data = await response.json();
+        const periodParams = new URLSearchParams();
+        if (period === 'geral') {
+            periodParams.append('period', 'mensal');
+            if (month) periodParams.append('month', month);
+            if (year) periodParams.append('year', year);
+        } else {
+            periodParams.append('period', period);
+            if (month) periodParams.append('month', month);
+            if (year) periodParams.append('year', year);
+        }
 
-        const hasHeadline = data.categoria_dominante != null && data.percentual_categoria != null;
-        const headlineText = hasHeadline
-            ? `Seu maior gasto neste período foi em ${data.categoria_dominante} (${data.percentual_categoria}%).`
-            : '';
-        const headlineClass = 'bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3 text-sm font-medium text-blue-800' + (hasHeadline ? '' : ' hidden');
+        const urlGeneral = '/finance/api/insights/?' + generalParams.toString();
+        const urlPeriod = '/finance/api/insights/?' + periodParams.toString();
 
-        document.getElementById('aiInsightText').innerHTML = `
-<div id="aiInsightHeadline" class="${headlineClass}">${headlineText}</div>
+        const [resGeneral, resPeriod] = await Promise.all([
+            fetch(urlGeneral),
+            fetch(urlPeriod)
+        ]);
 
-<div>
-    <span class="font-semibold text-gray-800">Diagnóstico</span>
-    <p class="text-gray-600">${data.diagnostico || '-'}</p>
-</div>
+        const dataGeneral = await resGeneral.json();
+        const dataPeriod = await resPeriod.json();
 
-<div>
-    <span class="font-semibold text-gray-800">Impacto</span>
-    <p class="text-gray-600">${data.impacto || '-'}</p>
-</div>
+        const generalEl = document.getElementById('aiInsightGeneralText');
+        const periodEl = document.getElementById('aiInsightText');
 
-<div>
-    <span class="font-semibold text-gray-800">Projeção</span>
-    <p class="text-gray-600">${data.projecao || '-'}</p>
-</div>
+        if (generalEl) {
+            if (dataGeneral.error) {
+                generalEl.innerHTML = '<p class="text-sm text-red-600">' + escapeHtml(dataGeneral.message || dataGeneral.error || 'Erro ao carregar análise geral.') + '</p>';
+            } else {
+                generalEl.innerHTML = buildAiInsightInnerHtml(dataGeneral, 'aiInsightGeneralHeadline', false);
+            }
+        }
 
-<div>
-    <span class="font-semibold text-gray-800">Recomendação</span>
-    <p class="text-gray-600">${data.recomendacao || '-'}</p>
-</div>
-`;
+        if (periodEl) {
+            if (dataPeriod.error) {
+                periodEl.innerHTML = '<p class="text-sm text-red-600">' + escapeHtml(dataPeriod.message || dataPeriod.error || 'Erro ao carregar análise do período.') + '</p>';
+            } else {
+                periodEl.innerHTML = buildAiInsightInnerHtml(dataPeriod, 'aiInsightHeadline', true);
+            }
+        }
+
         updateOnboardingChecklist();
     } catch (error) {
         console.error("Erro ao carregar insights:", error);
@@ -1720,18 +1804,117 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Função para recarregar tudo
-async function reloadDashboard() {
-    updateDashboardSubGreeting();
-    updateFilterVisibility();
-    currentTransactionsPage = 1; // Reset para primeira página
-    await Promise.all([
-        loadDashboardData(),
-        loadCharts(),
-        loadTransactions(1, transactionsLimit),
-        loadAccountBalances()
-    ]);
-    await loadInsights();
+/** Skeleton nos cards principais; removido ao fim do reload (dados já preenchidos pelos fetch existentes). */
+function setDashboardSkeleton(active) {
+    var root = document.querySelector('.dashboard-finance-content .dashboard-container');
+    if (root) {
+        root.classList.toggle('dashboard-skeleton-loading', active);
+    }
+
+    var chartSections = document.querySelectorAll(
+        '.dashboard-finance-content section.charts-section, .dashboard-finance-content section.patterns-section'
+    );
+    chartSections.forEach(function (sec) {
+        sec.classList.toggle('dashboard-skeleton-charts', active);
+    });
+
+    var metricIds = [
+        'totalExpenses', 'totalIncome', 'balance', 'savingsRate',
+        'financialHealthText', 'dayHighestExpense', 'categoryHighestExpense',
+        'topAccount', 'hourHighestExpense', 'expenseTrend', 'moneySpeed'
+    ];
+    metricIds.forEach(function (id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        if (active) {
+            el.classList.add('skeleton', 'skeleton-metric');
+            el.textContent = '\u00A0';
+        } else {
+            el.classList.remove('skeleton', 'skeleton-metric');
+        }
+    });
+
+    var saldo = document.getElementById('saldoTotal');
+    if (saldo) {
+        if (active) {
+            saldo.classList.add('skeleton', 'skeleton-metric', 'skeleton-metric-lg');
+            saldo.textContent = '\u00A0';
+        } else {
+            saldo.classList.remove('skeleton', 'skeleton-metric', 'skeleton-metric-lg');
+        }
+    }
+
+    var healthBar = document.getElementById('financialHealthBar');
+    if (healthBar) {
+        if (active) {
+            healthBar.style.width = '36%';
+            healthBar.className = 'h-3 rounded-full skeleton';
+        } else {
+            healthBar.classList.remove('skeleton');
+        }
+    }
+
+    var topEl = document.getElementById('topExpenseCategoriesList');
+    if (topEl) {
+        if (active) {
+            topEl.innerHTML =
+                '<div class="space-y-3">' +
+                '<div class="skeleton skeleton-row h-10 rounded-lg w-full"></div>' +
+                '<div class="skeleton skeleton-row h-10 rounded-lg w-full"></div>' +
+                '<div class="skeleton skeleton-row h-10 rounded-lg w-full"></div>' +
+                '</div>';
+        }
+    }
+
+    var tb = document.getElementById('transactionsTableBody');
+    if (tb && active) {
+        tb.innerHTML =
+            '<tr><td colspan="7" class="px-6 py-6">' +
+            '<div class="space-y-3 max-w-lg mx-auto">' +
+            '<div class="skeleton h-4 rounded w-full"></div>' +
+            '<div class="skeleton h-4 rounded" style="width:92%;max-width:100%"></div>' +
+            '<div class="skeleton h-4 rounded w-full"></div>' +
+            '<div class="skeleton h-4 rounded" style="width:80%;max-width:100%"></div>' +
+            '</div></td></tr>';
+    }
+
+    if (!active && tb && tb.querySelector('.skeleton')) {
+        tb.innerHTML =
+            '<tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">Não foi possível carregar as transações.</td></tr>';
+    }
+
+    var topRank = document.getElementById('topExpenseCategoriesList');
+    if (!active && topRank && topRank.querySelector('.skeleton')) {
+        topRank.textContent = 'Não foi possível carregar o ranking de categorias.';
+    }
+}
+
+// Função para recarregar tudo (opções: skipLoadingFade evita fade na carga inicial)
+async function reloadDashboard(options) {
+    options = options || {};
+    const skipFade = options.skipLoadingFade === true;
+    const dashContainer = document.querySelector('.dashboard-finance-content .dashboard-container');
+    if (!skipFade && dashContainer) {
+        dashContainer.classList.add('loading');
+    }
+    setDashboardSkeleton(true);
+    try {
+        updateDashboardSubGreeting();
+        updateFilterVisibility();
+        currentTransactionsPage = 1; // Reset para primeira página
+        await Promise.all([
+            loadDashboardData(),
+            loadCharts(),
+            loadTransactions(1, transactionsLimit),
+            loadAccountBalances()
+        ]);
+        await loadInsights();
+    } finally {
+        setDashboardSkeleton(false);
+        if (!skipFade && dashContainer) {
+            dashContainer.classList.remove('loading');
+        }
+    }
 }
 
 // Event listeners dos filtros
@@ -2073,7 +2256,7 @@ var dashboardTourStep = 0;
 var dashboardTourSteps = [
     { target: '#saldoTotal', text: 'Este é o seu saldo total.\nAqui você vê quanto dinheiro possui nas suas contas.' },
     { target: '#categoryHighestExpense', text: 'Aqui você descobre para onde seu dinheiro está indo.\nEssa é a categoria que mais consome seus gastos.' },
-    { target: '#aiInsightText', text: 'Aqui o Leozera analisa seu comportamento financeiro\ne gera recomendações automáticas.' }
+    { target: '#aiInsightGeneralText', text: 'Visão geral: para onde seu dinheiro costuma ir ao longo do tempo.\nAbaixo, a análise do período que você filtrou.' }
 ];
 
 function positionDashboardTourTooltip(stepIndex) {
@@ -2190,7 +2373,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     initFilterSelects();
     updateFilterVisibility();
     updateDashboardSubGreeting();
-    await reloadDashboard();
+    await reloadDashboard({ skipLoadingFade: true });
 
     if (localStorage.getItem('leozera_onboarding_completed') === 'true' && !localStorage.getItem('leozera_dashboard_tour_seen')) {
         setTimeout(startDashboardTour, 400);

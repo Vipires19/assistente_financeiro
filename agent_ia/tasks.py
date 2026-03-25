@@ -8,7 +8,7 @@ import sys
 import urllib.parse
 from datetime import datetime, timedelta, time as dt_time, timezone
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import pytz
 from bson import ObjectId
@@ -38,9 +38,9 @@ LIMITE_12H = timedelta(hours=12)
 LIMITE_1H = timedelta(hours=1)
 
 
-def get_mongo_colls() -> Tuple[Collection, Collection]:
+def get_mongo_colls() -> Tuple[Collection, Collection, Collection]:
     """
-    Retorna (coll_compromissos, coll_clientes) criando um novo MongoClient.
+    Retorna (compromissos, users, despesas_fixas) criando um novo MongoClient.
     Deve ser chamado dentro da task para evitar uso de cliente global após fork do Celery.
     """
     client = MongoClient(
@@ -48,7 +48,68 @@ def get_mongo_colls() -> Tuple[Collection, Collection]:
         % (MONGO_USER, MONGO_PASS)
     )
     db = client.financeiro_db
-    return db.compromissos, db.users
+    return db.compromissos, db.users, db.despesas_fixas
+
+
+def _intervalo_dia_civil_brasilia_utc(agora_brasilia: datetime) -> Tuple[datetime, datetime]:
+    """
+    Retorna (início do dia civil em America/Sao_Paulo, início do dia seguinte), em UTC aware,
+    para comparação no MongoDB (uma data civil completa, sem depender só do mês).
+    """
+    d = agora_brasilia.date()
+    inicio_sp = TZ.localize(datetime.combine(d, dt_time.min))
+    fim_sp = inicio_sp + timedelta(days=1)
+    return inicio_sp.astimezone(timezone.utc), fim_sp.astimezone(timezone.utc)
+
+
+def _filtro_mongo_ultimo_envio_nao_foi_hoje_brasilia(
+    agora_brasilia: datetime,
+) -> Dict[str, Any]:
+    """
+    Documentos em que ultimo_envio NÃO cai no intervalo [hoje 00:00, amanhã 00:00) em Brasília.
+    Compatível com valores naive em UTC legados (comparados como instantes no BSON).
+    """
+    inicio_utc, fim_utc = _intervalo_dia_civil_brasilia_utc(agora_brasilia)
+    return {
+        "$or": [
+            {"ultimo_envio": {"$exists": False}},
+            {"ultimo_envio": None},
+            {"ultimo_envio": {"$lt": inicio_utc}},
+            {"ultimo_envio": {"$gte": fim_utc}},
+        ]
+    }
+
+
+def _rollback_ultimo_envio(
+    coll: Collection, desp_id: Any, valor_anterior: Any
+) -> None:
+    """Restaura ultimo_envio após falha no envio (permite nova tentativa no mesmo dia)."""
+    try:
+        if valor_anterior is None:
+            coll.update_one({"_id": desp_id}, {"$unset": {"ultimo_envio": ""}})
+        else:
+            coll.update_one({"_id": desp_id}, {"$set": {"ultimo_envio": valor_anterior}})
+    except Exception as e:
+        logger.error("rollback ultimo_envio _id=%s: %s", desp_id, e)
+
+
+def _formatar_moeda_brl(val: Any) -> str:
+    """Valor numérico como string pt-BR (ex.: 1.234,56), para uso em mensagens."""
+    try:
+        v = float(val)
+    except (TypeError, ValueError):
+        v = 0.0
+    neg = v < 0
+    v = abs(v)
+    s = f"{v:.2f}"
+    intp, frac = s.split(".")
+    parts: list[str] = []
+    while intp:
+        parts.insert(0, intp[-3:])
+        intp = intp[:-3]
+    int_fmt = ".".join(parts)
+    prefix = "-" if neg else ""
+    return f"{prefix}{int_fmt},{frac}"
 
 
 # Link da página de planos (env ou fallback)
@@ -89,7 +150,7 @@ def verificar_lembretes() -> None:
     Executa a checagem de compromissos e envia lembretes (12h e 1h antes).
     Toda a lógica anterior do worker_lembretes.py está aqui.
     """
-    coll_compromissos, coll_clientes = get_mongo_colls()
+    coll_compromissos, coll_clientes, coll_despesas_fixas = get_mongo_colls()
     now = datetime.now(TZ)
     logger.info("Verificando compromissos...")
 
@@ -222,6 +283,97 @@ def verificar_lembretes() -> None:
         except Exception as e:
             logger.error("Erro ao processar compromisso 1h _id=%s: %s", comp.get("_id"), e)
 
+    # ----- Despesas fixas: 1 envio por dia civil (Brasil), seguro com vários workers -----
+    # Claim atômico no Mongo (ultimo_envio ainda não é "hoje" em SP); rollback se WA falhar.
+    logger.info("Verificando despesas fixas (dia %s)...", now.day)
+    try:
+        filtro_nao_enviou_hoje = _filtro_mongo_ultimo_envio_nao_foi_hoje_brasilia(now)
+        cursor_df = coll_despesas_fixas.find(
+            {
+                "ativo": True,
+                "dia_vencimento": now.day,
+                **filtro_nao_enviou_hoje,
+            }
+        )
+        for desp in cursor_df:
+            antigo_ultimo = desp.get("ultimo_envio")
+            claimed = False
+            try:
+                agora_sp = datetime.now(TZ)
+                # Reserva o slot do dia: só um worker altera (modified_count == 1)
+                claim = coll_despesas_fixas.update_one(
+                    {
+                        "_id": desp["_id"],
+                        "ativo": True,
+                        "dia_vencimento": now.day,
+                        **filtro_nao_enviou_hoje,
+                    },
+                    {"$set": {"ultimo_envio": agora_sp}},
+                )
+                if claim.modified_count != 1:
+                    continue
+                claimed = True
+
+                user_id = desp.get("user_id")
+                if not user_id:
+                    _rollback_ultimo_envio(
+                        coll_despesas_fixas, desp["_id"], antigo_ultimo
+                    )
+                    continue
+                user_id = (
+                    ObjectId(user_id) if not isinstance(user_id, ObjectId) else user_id
+                )
+                cliente = coll_clientes.find_one({"_id": user_id})
+                if not cliente:
+                    _rollback_ultimo_envio(
+                        coll_despesas_fixas, desp["_id"], antigo_ultimo
+                    )
+                    continue
+                telefone = cliente.get("telefone") or cliente.get("phone")
+                if not telefone:
+                    _rollback_ultimo_envio(
+                        coll_despesas_fixas, desp["_id"], antigo_ultimo
+                    )
+                    continue
+                nome = (desp.get("nome") or "").strip() or "despesa fixa"
+                valor_fmt = _formatar_moeda_brl(desp.get("valor"))
+                texto = (
+                    "💸 Lembrete financeiro\n\n"
+                    "Hoje é o dia de pagar:\n"
+                    f"📌 {nome}\n"
+                    f"💰 R$ {valor_fmt}\n\n"
+                    "Não esqueça de registrar depois 😉"
+                )
+                if enviar_mensagem_waha(telefone, texto):
+                    logger.info(
+                        "Lembrete despesa fixa enviado para %s — %s",
+                        telefone,
+                        nome,
+                    )
+                else:
+                    _rollback_ultimo_envio(
+                        coll_despesas_fixas, desp["_id"], antigo_ultimo
+                    )
+                    logger.warning(
+                        "Falha WA despesa fixa _id=%s — ultimo_envio revertido",
+                        desp.get("_id"),
+                    )
+            except Exception as e:
+                logger.error(
+                    "Erro ao processar despesa fixa _id=%s: %s",
+                    desp.get("_id"),
+                    e,
+                )
+                if claimed:
+                    try:
+                        _rollback_ultimo_envio(
+                            coll_despesas_fixas, desp["_id"], antigo_ultimo
+                        )
+                    except Exception:
+                        pass
+    except Exception as e:
+        logger.error("verificar_lembretes despesas fixas: %s", e)
+
 
 @celery.task
 def enviar_confirmacao(compromisso_id: str) -> bool:
@@ -229,7 +381,7 @@ def enviar_confirmacao(compromisso_id: str) -> bool:
     Envia mensagem de confirmação (lembrete 12h) para um único compromisso por ID.
     Útil para disparo sob demanda. Retorna True se enviou com sucesso.
     """
-    coll_compromissos, coll_clientes = get_mongo_colls()
+    coll_compromissos, coll_clientes, _ = get_mongo_colls()
     try:
         comp = coll_compromissos.find_one({
             "_id": ObjectId(compromisso_id),
@@ -288,7 +440,7 @@ def verificar_trial_expirado() -> None:
     Atualiza para sem_plano/expirado, marca trial_notificado e envia aviso no WhatsApp.
     Usa a mesma função centralizada enviar_mensagem_waha (lembretes).
     """
-    _, coll_clientes = get_mongo_colls()
+    _, coll_clientes, _ = get_mongo_colls()
     now = datetime.now(timezone.utc)
     # Usuários em trial com fim < agora e ainda não notificados (top-level ou assinatura)
     cursor = coll_clientes.find({
@@ -347,7 +499,7 @@ def verificar_planos_vencidos() -> None:
     assinatura.proximo_vencimento. Só após passar o vencimento o plano é encerrado
     (assinatura.plano = "sem_plano", assinatura.status = "inativa").
     """
-    _, coll_clientes = get_mongo_colls()
+    _, coll_clientes, _ = get_mongo_colls()
     now = datetime.now(timezone.utc)
     cursor = coll_clientes.find({
         "assinatura.status": {"$in": ["ativa", "cancelada"]},

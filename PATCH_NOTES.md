@@ -16,6 +16,32 @@
 
 ---
 
+## v0.5.0
+
+### ✨ Features
+
+- Sistema de despesas fixas com lembretes automáticos
+- Insights financeiros com separação entre global e período
+- Novo modelo de resposta da IA (headline + insights)
+
+### 🎨 UX/UI
+
+- Redesign completo do dashboard
+- Hierarquia visual aprimorada
+- Microinterações e melhorias visuais
+
+### ⚙️ Backend
+
+- Integração de lembretes de despesas no worker Celery
+- Controle de envio com `ultimo_envio` (evita duplicações)
+
+### 🐛 Fixes
+
+- Correção de inconsistências de classificação (receita vs despesa)
+- Ajustes de responsividade e layout
+
+---
+
 ## v0.6.0 – Dashboard Inteligente
 
 ### Novas funcionalidades

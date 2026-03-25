@@ -116,7 +116,7 @@ class DashboardService:
         Todas as datas em UTC para compatibilidade com transaction_date/created_at no MongoDB.
 
         Args:
-            period: 'diário'/'diario', 'semanal', 'mensal' ou 'anual'
+            period: 'diário'/'diario', 'semanal', 'mensal', 'anual' ou 'geral'
             month: Mês (1-12) para período mensal (opcional, da query string).
             year: Ano para período mensal ou anual (opcional, da query string).
 
@@ -162,6 +162,11 @@ class DashboardService:
             else:
                 start = datetime(now.year, 1, 1, tzinfo=timezone.utc)
                 end = now
+
+        elif period == 'geral':
+            # Janela longa para padrões de comportamento (insights “geral”, não um mês isolado)
+            start = now - timedelta(days=730)
+            end = now
 
         else:
             start = now - timedelta(days=30)

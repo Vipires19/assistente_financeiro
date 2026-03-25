@@ -4,7 +4,8 @@ Serviço de insights financeiros gerados por IA.
 Localização: finance/services/ai_insights.py
 
 Modelo híbrido: o backend calcula padrões financeiros e a IA apenas interpreta.
-Gera diagnóstico, impacto, projeção e recomendação a partir de dados consolidados.
+Gera headline, insights_chave (3 frases), diagnóstico, impacto, projeção e recomendação.
+Modo "periodo": análise do intervalo filtrado. Modo "geral": foco em comportamento e hábitos (janela longa).
 """
 import os
 import json
@@ -19,6 +20,8 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # Fallback seguro quando a API falha ou a resposta não é JSON válido (novo formato)
 FALLBACK_RESPONSE = {
+    "headline": "",
+    "insights_chave": [],
     "diagnostico": "Não foi possível gerar a análise no momento. Tente novamente mais tarde.",
     "impacto": "",
     "projecao": "",
@@ -125,15 +128,15 @@ def _enriquecer_dados(dados: dict) -> dict:
     return enriquecido
 
 
-def _construir_resumo_financeiro(dados_enriquecidos: dict) -> dict:
+def _construir_resumo_financeiro(dados_enriquecidos: dict, insight_modo: str) -> dict:
     """
     Monta objeto resumo_financeiro com apenas os campos necessários para o prompt da IA.
-    Reduz volume de dados e custo de tokens. Valores inexistentes como null ou 0 conforme apropriado.
+    No modo geral inclui ranking de categorias e sinais de hábito (dia/horário).
     """
     total_income = dados_enriquecidos.get("total_income")
     total_expenses = dados_enriquecidos.get("total_expenses")
     balance = dados_enriquecidos.get("balance")
-    return {
+    out = {
         "total_income": total_income if total_income is not None else 0,
         "total_expenses": total_expenses if total_expenses is not None else 0,
         "balance": balance if balance is not None else 0,
@@ -143,58 +146,166 @@ def _construir_resumo_financeiro(dados_enriquecidos: dict) -> dict:
         "conta_mais_usada": dados_enriquecidos.get("conta_mais_usada"),
         "percentual_conta": dados_enriquecidos.get("percentual_conta"),
     }
+    if insight_modo == "geral":
+        out["contexto"] = (
+            "Agregado de aproximadamente os últimos 24 meses de registros. "
+            "Infira hábitos e padrões recorrentes; não trate como um único mês."
+        )
+        out["top_categorias_despesa"] = dados_enriquecidos.get("top_expense_categories") or []
+        out["dia_com_maior_gasto"] = dados_enriquecidos.get("day_with_highest_expense")
+        out["horario_com_maior_gasto"] = dados_enriquecidos.get("hour_with_highest_expense")
+    return out
+
+
+def _montar_prompt_periodo(resumo_json: str) -> str:
+    return (
+        "Você é um analista financeiro pessoal. Use os dados numéricos abaixo (já calculados) "
+        "para escrever uma análise útil em português do Brasil.\n\n"
+        "Responda APENAS com um único objeto JSON válido, sem markdown, neste formato exato:\n"
+        "{\n"
+        '  "headline": "Resumo principal em uma frase clara",\n'
+        '  "insights_chave": [\n'
+        '    "Insight curto 1",\n'
+        '    "Insight curto 2",\n'
+        '    "Insight curto 3"\n'
+        "  ],\n"
+        '  "diagnostico": "...",\n'
+        '  "impacto": "...",\n'
+        '  "projecao": "...",\n'
+        '  "recomendacao": "..."\n'
+        "}\n\n"
+        "Instruções (modo período):\n"
+        "- headline: uma frase direta sobre ONDE o dinheiro está indo ou o padrão mais importante no intervalo. "
+        "Sem clichês.\n"
+        "- insights_chave: exatamente 3 itens; cada um com no máximo 1 frase curta; linguagem simples; "
+        "fatos baseados nos dados (categoria dominante, percentuais, conta mais usada, taxa de economia, saldo).\n"
+        "- diagnostico, impacto, projecao, recomendacao: frases curtas (no máximo 2 por campo); "
+        "específicos ao período analisado; evite frases genéricas vazias.\n"
+        "- Não invente categorias ou valores que não apareçam nos dados; se faltar dado, seja cauteloso.\n\n"
+        "Exemplo de estilo (adapte aos números reais):\n"
+        '- headline: "Seus gastos estão concentrados em alimentação"\n'
+        '- insights_chave: [\n'
+        '    "Você gastou mais com refeições fora de casa neste período",\n'
+        '    "A alimentação representa a maior parte dos seus gastos",\n'
+        '    "Seus gastos estão acima da sua capacidade de economia"\n'
+        "  ]\n\n"
+        "Dados financeiros (JSON):\n\n"
+        f"{resumo_json}"
+    )
+
+
+def _montar_prompt_geral(resumo_json: str) -> str:
+    return (
+        "Você é um analista de comportamento financeiro. Os números abaixo vêm de uma janela LONGA "
+        "(cerca de 24 meses): use-os para descrever HÁBITOS e tendências, não um mês isolado.\n\n"
+        "Responda APENAS com um único objeto JSON válido, sem markdown, neste formato exato:\n"
+        "{\n"
+        '  "headline": "Resumo do comportamento financeiro do usuário",\n'
+        '  "insights_chave": [\n'
+        '    "Padrão de gasto recorrente",\n'
+        '    "Possível vício financeiro (hábito de consumo repetido)",\n'
+        '    "Tendência de comportamento"\n'
+        "  ],\n"
+        '  "diagnostico": "...",\n'
+        '  "impacto": "...",\n'
+        '  "projecao": "...",\n'
+        '  "recomendacao": "..."\n'
+        "}\n\n"
+        "Instruções (modo geral — comportamento e hábitos):\n"
+        "- Identifique padrões ao longo do tempo: para onde o dinheiro COSTUMA ir (categorias, conta mais usada).\n"
+        "- Destaque hábitos recorrentes (ex.: concentração em uma categoria, horário/dia de pico, pouca margem de economia).\n"
+        "- Linguagem clara e direta. Evite termos genéricos sem conteúdo.\n"
+        "- Tom: fale como COMPORTAMENTO. Prefira expressões como \"você costuma\", \"seu padrão é\", "
+        "\"de forma recorrente\", \"ao longo do tempo\".\n"
+        "- PROIBIDO: referir-se ao recorte como \"neste mês\", \"esse mês\", \"nesta semana\", "
+        "\"hoje\", \"no período selecionado\" ou equivalentes temporais curtos.\n"
+        "- \"Possível vício financeiro\" nos insights_chave significa hábito de gasto repetitivo ou automático "
+        "(ex.: gasto frequente na mesma categoria), sem tom clínico ou moralizante.\n"
+        "- headline: uma frase forte que responda implicitamente \"para onde meu dinheiro está indo\".\n"
+        "- insights_chave: exatamente 3 frases curtas, alinhadas a: (1) padrão recorrente, "
+        "(2) hábito de consumo que se repete ou pesa no orçamento, (3) tendência de comportamento "
+        "(ex.: poupança consistentemente baixa).\n"
+        "- diagnostico, impacto, projecao, recomendacao: no máximo 2 frases cada; "
+        "projecao no estilo \"se esse padrão continuar\" (sem citar mês específico).\n"
+        "- Não invente categorias ou percentuais; use top_categorias_despesa, categoria_dominante e totais fornecidos.\n\n"
+        "Exemplo de estilo (adapte aos dados reais; não copie se não condizer):\n"
+        '- headline: "Grande parte do seu dinheiro está indo para alimentação"\n'
+        '- insights_chave: [\n'
+        '    "Você tem um padrão frequente de gastos com alimentação fora de casa",\n'
+        '    "Essa categoria domina seu orçamento ao longo do tempo",\n'
+        '    "Sua taxa de economia permanece baixa de forma consistente"\n'
+        "  ]\n\n"
+        "Dados financeiros (JSON):\n\n"
+        f"{resumo_json}"
+    )
+
+
+def _normalizar_insights_chave(val) -> list:
+    """Garante lista de até 3 frases curtas (strings não vazias)."""
+    if not val:
+        return []
+    if isinstance(val, str):
+        s = val.strip()
+        return [s] if s else []
+    if isinstance(val, list):
+        out = []
+        for x in val:
+            if isinstance(x, str) and x.strip():
+                out.append(x.strip())
+            elif x is not None and not isinstance(x, str):
+                out.append(str(x).strip())
+        return out[:3]
+    return []
 
 
 def gerar_insights_financeiros(dados: dict) -> dict:
     """
-    Gera diagnóstico, impacto, projeção e recomendação a partir de dados financeiros.
+    Gera headline, insights_chave, diagnóstico, impacto, projeção e recomendação.
 
     O backend calcula os padrões (taxa de economia, categoria dominante, conta mais usada);
-    a IA apenas interpreta e redige os campos em linguagem simples.
+    a IA interpreta e redige em linguagem simples e direta.
 
     Args:
         dados: Dicionário com dados consolidados (ex.: total_income, total_expenses,
                balance, category_with_highest_expense, transactions com account_id, etc.).
+               Opcional: insight_modo 'geral' ou 'periodo' (API com period=geral),
+               top_expense_categories (lista com category, total, percentual_sobre_despesas).
 
     Returns:
-        Dict com chaves: "diagnostico", "impacto", "projecao", "recomendacao".
+        Dict com chaves: "headline", "insights_chave", "diagnostico", "impacto",
+        "projecao", "recomendacao".
         Em caso de erro, retorna fallback seguro (mesmo formato).
     """
     if not OPENAI_API_KEY:
         logger.warning("OPENAI_API_KEY não configurada em ai_insights.")
         return {
+            "headline": "",
+            "insights_chave": [],
             "diagnostico": "Configure OPENAI_API_KEY no .env para receber análises automáticas.",
             "impacto": "",
             "projecao": "",
             "recomendacao": "Adicione OPENAI_API_KEY nas variáveis de ambiente.",
         }
 
+    insight_modo = (dados.get("insight_modo") or "periodo").strip().lower()
+    if insight_modo not in ("geral", "periodo"):
+        insight_modo = "periodo"
+
     # Enriquece dados com padrões calculados no backend
     dados = _enriquecer_dados(dados)
 
     # Enviar apenas resumo_financeiro para a IA (reduz tokens e custo)
     try:
-        resumo_financeiro = _construir_resumo_financeiro(dados)
+        resumo_financeiro = _construir_resumo_financeiro(dados, insight_modo)
         resumo_json = json.dumps(resumo_financeiro, ensure_ascii=False, indent=2)
     except (TypeError, ValueError) as e:
         logger.warning("Dados não serializáveis para JSON em gerar_insights_financeiros: %s", e)
         return FALLBACK_RESPONSE
 
-    prompt = (
-        "Você é um analista financeiro que explica padrões de gastos.\n\n"
-        "Analise os dados resumidos abaixo e gere uma análise clara.\n\n"
-        "Responda em JSON no formato:\n"
-        '{"diagnostico": "...", "impacto": "...", "projecao": "...", "recomendacao": "..."}\n\n'
-        "Regras:\n"
-        "- explicar para onde o dinheiro está indo\n"
-        "- mencionar categoria dominante\n"
-        "- mencionar conta mais usada\n"
-        "- mencionar taxa de economia\n"
-        "- linguagem simples\n"
-        "- máximo 2 frases por campo\n\n"
-        "Dados financeiros:\n\n"
-        f"{resumo_json}"
-    )
+    if insight_modo == "geral":
+        prompt = _montar_prompt_geral(resumo_json)
+    else:
+        prompt = _montar_prompt_periodo(resumo_json)
 
     try:
         client = OpenAI(api_key=OPENAI_API_KEY)
@@ -216,11 +327,15 @@ def gerar_insights_financeiros(dados: dict) -> dict:
             if content.strip().startswith("json"):
                 content = content.strip()[4:].strip()
         parsed = json.loads(content)
+        headline = (parsed.get("headline") or "").strip()
+        insights_chave = _normalizar_insights_chave(parsed.get("insights_chave"))
         return {
-            "diagnostico": parsed.get("diagnostico", ""),
-            "impacto": parsed.get("impacto", ""),
-            "projecao": parsed.get("projecao", ""),
-            "recomendacao": parsed.get("recomendacao", ""),
+            "headline": headline,
+            "insights_chave": insights_chave,
+            "diagnostico": (parsed.get("diagnostico") or "").strip(),
+            "impacto": (parsed.get("impacto") or "").strip(),
+            "projecao": (parsed.get("projecao") or "").strip(),
+            "recomendacao": (parsed.get("recomendacao") or "").strip(),
         }
     except (json.JSONDecodeError, TypeError) as e:
         logger.warning("Resposta da OpenAI não é JSON válido em gerar_insights_financeiros: %s", e)
