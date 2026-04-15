@@ -71,22 +71,29 @@ The system combines **AI + messaging + analytics** to create a frictionless fina
 
 ---
 
-## 🚀 What’s new in v0.5.0
+## 🚀 What’s new in v1.0.0
 
-- Fully redesigned dashboard with a guided, SaaS-style flow
-- Split financial insights:
-  - global analysis (behavior)
-  - period analysis (current state)
-- Improved AI output:
-  - main headline
-  - `insights_chave` (more direct and actionable)
-- New feature: **Fixed expenses**
-  - recurring bills and subscriptions
-  - automatic reminders via WhatsApp
-- UX improvements:
-  - micro-interactions
-  - mobile and desktop responsiveness
-  - clearer visual emphasis for insights (alerts and positives)
+- Full **Family Mode** rollout:
+  - family creation flow
+  - WhatsApp member invites
+  - invite acceptance by secure link
+  - shared read scope with write isolation per user
+- Monetization upgrade:
+  - 4 clear plans (Individual Monthly/Yearly, Family Monthly/Yearly)
+  - plan-based feature gating and member limits
+  - upgrade paths directly from UI
+- Mercado Pago subscriptions (preapproval):
+  - real subscription creation
+  - webhook-driven activation (source of truth)
+  - post-payment flow
+- Subscription lifecycle hardening:
+  - cancellation with grace period
+  - automatic downgrade via scheduled job
+  - family data preserved after downgrade
+- UX and conversion improvements:
+  - plans page redesigned
+  - landing page updated with explicit family value proposition
+  - clearer blocked-state feedback in sidebar/actions
 
 ---
 
